@@ -1,0 +1,6 @@
+{
+  "name": "NetOps Mobile",
+  "description": "All-in-one offline toolbox, device monitor, and SSH client for network engineers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
