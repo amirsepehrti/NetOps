@@ -15,11 +15,11 @@ import java.net.NetworkInterface
 import java.util.Collections
 
 enum class NetOpsTab {
-    DASHBOARD, TOOLBOX, DEVICES, ALERTS, TERMINAL
+    DASHBOARD, TOOLBOX, DEVICES, ALERTS, TERMINAL, SETTINGS
 }
 
 enum class ActiveTool {
-    NONE, PING, PORT_SCANNER, SUBNET_CALC, DNS_LOOKUP, WAKE_ON_LAN, TRACEROUTE, WHOIS_LOOKUP, SPEED_TEST, TRAFFIC_GENERATOR, BANDWIDTH_TEST, SNMP_DISCOVERY, WAN_KILLER, MAC_SCANNER
+    NONE, PING, PORT_SCANNER, SUBNET_CALC, DNS_LOOKUP, WAKE_ON_LAN, TRACEROUTE, WHOIS_LOOKUP, SPEED_TEST, TRAFFIC_GENERATOR, BANDWIDTH_TEST, SNMP_DISCOVERY, WAN_KILLER, MAC_SCANNER, WIFI_DIAGNOSTICS, CELL_DIAGNOSTICS
 }
 
 class NetOpsViewModel(application: Application) : AndroidViewModel(application) {
@@ -1375,4 +1375,376 @@ class NetOpsViewModel(application: Application) : AndroidViewModel(application) 
         macScanJob?.cancel()
         _isMacScanRunning.value = false
     }
+
+    // ==========================================
+    // --- CUSTOMIZATION & SETTINGS STATES ---
+    // ==========================================
+    private val _activeTheme = MutableStateFlow(com.example.ui.theme.NetOpsTheme.NORD_SLATE)
+    val activeTheme: StateFlow<com.example.ui.theme.NetOpsTheme> = _activeTheme.asStateFlow()
+
+    private val _backgroundMonitoringEnabled = MutableStateFlow(true)
+    val backgroundMonitoringEnabled: StateFlow<Boolean> = _backgroundMonitoringEnabled.asStateFlow()
+
+    // Preferences for Dashboard Widget Visibilities
+    private val _showQuickStats = MutableStateFlow(true)
+    val showQuickStats: StateFlow<Boolean> = _showQuickStats.asStateFlow()
+
+    private val _showRecentIncidents = MutableStateFlow(true)
+    val showRecentIncidents: StateFlow<Boolean> = _showRecentIncidents.asStateFlow()
+
+    private val _showTrafficSnifferWidget = MutableStateFlow(true)
+    val showTrafficSnifferWidget: StateFlow<Boolean> = _showTrafficSnifferWidget.asStateFlow()
+
+    private val _showCellRadarWidget = MutableStateFlow(true)
+    val showCellRadarWidget: StateFlow<Boolean> = _showCellRadarWidget.asStateFlow()
+
+    private val _showMatrixHeader = MutableStateFlow(true)
+    val showMatrixHeader: StateFlow<Boolean> = _showMatrixHeader.asStateFlow()
+
+    private val _showDiagnosticStream = MutableStateFlow(true)
+    val showDiagnosticStream: StateFlow<Boolean> = _showDiagnosticStream.asStateFlow()
+
+    private val _showDeviceInventory = MutableStateFlow(true)
+    val showDeviceInventory: StateFlow<Boolean> = _showDeviceInventory.asStateFlow()
+
+    fun setTheme(theme: com.example.ui.theme.NetOpsTheme) {
+        _activeTheme.value = theme
+        com.example.ui.theme.ThemeManager.currentTheme = theme
+    }
+
+    fun setBackgroundMonitoring(enabled: Boolean) {
+        _backgroundMonitoringEnabled.value = enabled
+        if (enabled) {
+            startBackgroundMonitoringTask()
+        } else {
+            bgMonitoringJob?.cancel()
+        }
+    }
+
+    fun toggleWidget(widgetId: String) {
+        when (widgetId) {
+            "quick_stats" -> _showQuickStats.value = !_showQuickStats.value
+            "incidents" -> _showRecentIncidents.value = !_showRecentIncidents.value
+            "sniffer" -> _showTrafficSnifferWidget.value = !_showTrafficSnifferWidget.value
+            "cell_radar" -> _showCellRadarWidget.value = !_showCellRadarWidget.value
+            "matrix_header" -> _showMatrixHeader.value = !_showMatrixHeader.value
+            "diagnostic_stream" -> _showDiagnosticStream.value = !_showDiagnosticStream.value
+            "device_inventory" -> _showDeviceInventory.value = !_showDeviceInventory.value
+        }
+    }
+
+    // Periodic Background Task simulating local network health checks
+    private var bgMonitoringJob: Job? = null
+    private fun startBackgroundMonitoringTask() {
+        bgMonitoringJob?.cancel()
+        bgMonitoringJob = viewModelScope.launch(Dispatchers.IO) {
+            while (_backgroundMonitoringEnabled.value) {
+                delay(15000) // Check every 15 seconds
+                // Muted/Low-fatigue background logs
+                val randomLatency = (10..45).random()
+                if (randomLatency > 40) {
+                    // Inject a light health event occasionally
+                    withContext(Dispatchers.Main) {
+                        // Safe trigger of light log
+                    }
+                }
+            }
+        }
+    }
+
+    // ==========================================
+    // --- WI-FI SIGNAL DIAGNOSTICS & SNIFFER ---
+    // ==========================================
+    private val _wifiSsid = MutableStateFlow("Homelab_Secure_5G")
+    val wifiSsid: StateFlow<String> = _wifiSsid.asStateFlow()
+
+    private val _wifiBssid = MutableStateFlow("FC:EC:DA:22:90:BC")
+    val wifiBssid: StateFlow<String> = _wifiBssid.asStateFlow()
+
+    private val _wifiSignalStrength = MutableStateFlow(-48) // Excellent
+    val wifiSignalStrength: StateFlow<Int> = _wifiSignalStrength.asStateFlow()
+
+    private val _wifiNoiseLevel = MutableStateFlow(-96) // Super clean
+    val wifiNoiseLevel: StateFlow<Int> = _wifiNoiseLevel.asStateFlow()
+
+    private val _wifiType = MutableStateFlow("Wi-Fi 6 (802.11ax)")
+    val wifiType: StateFlow<String> = _wifiType.asStateFlow()
+
+    private val _wifiLinkSpeed = MutableStateFlow(1201) // Mbps
+    val wifiLinkSpeed: StateFlow<Int> = _wifiLinkSpeed.asStateFlow()
+
+    private val _wifiFrequency = MutableStateFlow(5180) // 5 GHz Channel 36
+    val wifiFrequency: StateFlow<Int> = _wifiFrequency.asStateFlow()
+
+    private val _isWifiScannerRunning = MutableStateFlow(false)
+    val isWifiScannerRunning: StateFlow<Boolean> = _isWifiScannerRunning.asStateFlow()
+
+    private val _wifiScanProgress = MutableStateFlow(0f)
+    val wifiScanProgress: StateFlow<Float> = _wifiScanProgress.asStateFlow()
+
+    private val _wifiScanResults = MutableStateFlow<List<WifiScanResult>>(emptyList())
+    val wifiScanResults: StateFlow<List<WifiScanResult>> = _wifiScanResults.asStateFlow()
+
+    private var wifiScanJob: Job? = null
+
+    fun startWifiScan() {
+        if (_isWifiScannerRunning.value) return
+        _isWifiScannerRunning.value = true
+        _wifiScanProgress.value = 0f
+        _wifiScanResults.value = emptyList()
+
+        wifiScanJob = viewModelScope.launch(Dispatchers.IO) {
+            val randomSsidPrefixes = listOf("NETGEAR", "Homelab", "Linksys", "TP-LINK", "Cisco", "ASUS", "Direct-Smart")
+            val baseScan = listOf(
+                WifiScanResult("Homelab_Secure_5G", "FC:EC:DA:22:90:BC", -48, 36, 5180, "Wi-Fi 6 (802.11ax)", "WPA3-Personal", "Ubiquiti Inc."),
+                WifiScanResult("NETGEAR-Guest-2G", "00:1E:E5:C1:A4:B3", -72, 6, 2437, "Wi-Fi 4 (802.11n)", "WPA2-Personal", "Netgear"),
+                WifiScanResult("ASUS-ROG-Ultra", "04:D4:C4:E4:90:AA", -64, 149, 5745, "Wi-Fi 6E (802.11ax)", "WPA3-Enterprise", "ASUSTek Computer"),
+                WifiScanResult("TP-LINK-IOT-Hub", "E8:94:F6:A3:D2:01", -58, 11, 2462, "Wi-Fi 5 (802.11ac)", "WPA2-PSK", "TP-Link Technologies")
+            )
+            _wifiScanResults.value = baseScan
+
+            for (step in 1..10) {
+                delay(180)
+                _wifiScanProgress.value = step / 10f
+                if (step % 3 == 0) {
+                    val randIdx = kotlin.random.Random.nextInt(randomSsidPrefixes.size)
+                    val randSsid = "${randomSsidPrefixes[randIdx]}_${(100..999).random()}"
+                    val randCh = listOf(1, 6, 11, 36, 40, 48, 149).random()
+                    val randFreq = if (randCh > 14) 5000 + randCh * 5 else 2400 + randCh * 5
+                    val randRssi = -(50..95).random()
+                    val is6 = kotlin.random.Random.nextBoolean()
+                    val newRes = WifiScanResult(
+                        ssid = randSsid,
+                        bssid = String.format("%02X:%02X:%02X:%02X:%02X:%02X", (0..255).random(), (0..255).random(), (0..255).random(), (0..255).random(), (0..255).random(), (0..255).random()),
+                        rssi = randRssi,
+                        channel = randCh,
+                        frequencyMhz = randFreq,
+                        standard = if (is6) "Wi-Fi 6 (802.11ax)" else "Wi-Fi 5 (802.11ac)",
+                        security = if (is6) "WPA3" else "WPA2-Personal",
+                        vendor = listOf("Ubiquiti", "Cisco", "Intel", "Broadcom", "Realtek").random()
+                    )
+                    _wifiScanResults.update { it + newRes }
+                }
+            }
+            _isWifiScannerRunning.value = false
+        }
+    }
+
+    // Wi-Fi and Network Sniffing Simulator
+    private val _isSnifferRunning = MutableStateFlow(false)
+    val isSnifferRunning: StateFlow<Boolean> = _isSnifferRunning.asStateFlow()
+
+    private val _snifferPackets = MutableStateFlow<List<SniffedPacket>>(emptyList())
+    val snifferPackets: StateFlow<List<SniffedPacket>> = _snifferPackets.asStateFlow()
+
+    private val _snifferStats = MutableStateFlow(SnifferStats(0, 0, 0, 0, 0.0))
+    val snifferStats: StateFlow<SnifferStats> = _snifferStats.asStateFlow()
+
+    private var snifferJob: Job? = null
+
+    fun startSniffer() {
+        if (_isSnifferRunning.value) return
+        _isSnifferRunning.value = true
+        _snifferPackets.value = emptyList()
+        _snifferStats.value = SnifferStats(0, 0, 0, 0, 0.0)
+
+        val sdf = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+        val ips = listOf("192.168.1.1", "192.168.1.10", "192.168.1.50", "192.168.1.100", "8.8.8.8", "1.1.1.1", "142.250.190.46")
+        val protocols = listOf("TCP", "UDP", "ICMP", "DNS", "DHCP", "ARP", "SNMP")
+
+        snifferJob = viewModelScope.launch(Dispatchers.IO) {
+            var count = 0L
+            var tcp = 0L
+            var udp = 0L
+            var other = 0L
+            while (_isSnifferRunning.value) {
+                delay((100..400).random().toLong())
+                count++
+                val proto = protocols.random()
+                val src = ips.random()
+                var dest = ips.random()
+                while (dest == src) { dest = ips.random() }
+                
+                val port = when (proto) {
+                    "TCP" -> listOf("80", "443", "22", "8080").random()
+                    "UDP" -> listOf("53", "123", "161", "1900").random()
+                    "DNS" -> "53"
+                    "DHCP" -> "67"
+                    "SNMP" -> "161"
+                    else -> "N/A"
+                }
+
+                if (proto == "TCP") tcp++ else if (proto == "UDP" || proto == "DNS") udp++ else other++
+
+                val length = (46..1500).random()
+                val info = when (proto) {
+                    "TCP" -> "FLAGS=[SYN, ACK] SEQ=${(1000..9999).random()} WIN=64240"
+                    "UDP" -> "LEN=$length IP_CHECKSUM=VALID"
+                    "ICMP" -> "Type 8 (Echo Request) ID=${(100..999).random()} SEQ=$count"
+                    "DNS" -> "Standard query A google.com (TX_ID: 0x${(1000..9999).random().toString(16).uppercase()})"
+                    "DHCP" -> "DHCP Request Option 53 Client-IP=192.168.1.102"
+                    "ARP" -> "Who has $dest? Tell $src"
+                    "SNMP" -> "GetRequest OID=1.3.6.1.2.1.1.1.0"
+                    else -> "Data Payload [Length: $length]"
+                }
+
+                val newPacket = SniffedPacket(
+                    timestamp = sdf.format(java.util.Date()),
+                    protocol = proto,
+                    source = src,
+                    destination = dest,
+                    port = port,
+                    length = length,
+                    info = info
+                )
+
+                _snifferPackets.update { (listOf(newPacket) + it).take(150) } // Keep last 150 packets
+                _snifferStats.value = SnifferStats(
+                    packetsCount = count,
+                    tcpCount = tcp,
+                    udpCount = udp,
+                    otherCount = other,
+                    dataRateKbps = kotlin.random.Random.nextDouble(25.0, 780.0)
+                )
+            }
+        }
+    }
+
+    fun stopSniffer() {
+        snifferJob?.cancel()
+        _isSnifferRunning.value = false
+    }
+
+    // ==========================================
+    // --- CELLULAR TOWER & SIGNAL DIAGNOSTICS ---
+    // ==========================================
+    private val _cellOperator = MutableStateFlow("MTN Irancell")
+    val cellOperator: StateFlow<String> = _cellOperator.asStateFlow()
+
+    private val _cellType = MutableStateFlow("5G NR (Sub-6GHz)")
+    val cellType: StateFlow<String> = _cellType.asStateFlow()
+
+    private val _cellId = MutableStateFlow("432-11-28945-12")
+    val cellId: StateFlow<String> = _cellId.asStateFlow()
+
+    private val _cellTac = MutableStateFlow("1024")
+    val cellTac: StateFlow<String> = _cellTac.asStateFlow()
+
+    private val _cellMccMnc = MutableStateFlow("432-11 (Iran)")
+    val cellMccMnc: StateFlow<String> = _cellMccMnc.asStateFlow()
+
+    private val _cellSignalStrengthRsrp = MutableStateFlow(-84) // dBm (Good)
+    val cellSignalStrengthRsrp: StateFlow<Int> = _cellSignalStrengthRsrp.asStateFlow()
+
+    private val _cellSignalStrengthRsrq = MutableStateFlow(-11) // dB (Excellent)
+    val cellSignalStrengthRsrq: StateFlow<Int> = _cellSignalStrengthRsrq.asStateFlow()
+
+    private val _cellSignalStrengthSnr = MutableStateFlow(16) // dB
+    val cellSignalStrengthSnr: StateFlow<Int> = _cellSignalStrengthSnr.asStateFlow()
+
+    private val _isCellScannerRunning = MutableStateFlow(false)
+    val isCellScannerRunning: StateFlow<Boolean> = _isCellScannerRunning.asStateFlow()
+
+    private val _cellTowers = MutableStateFlow<List<CellTowerInfo>>(emptyList())
+    val cellTowers: StateFlow<List<CellTowerInfo>> = _cellTowers.asStateFlow()
+
+    private var cellScanJob: Job? = null
+
+    fun startCellScan() {
+        if (_isCellScannerRunning.value) return
+        _isCellScannerRunning.value = true
+
+        // Initial set of simulated cellular towers in local radius (3km)
+        val initialTowers = listOf(
+            CellTowerInfo("CID: 28945-12", "5G NR", -84, -84, -11, 450, true, "MTN Irancell", 45f),
+            CellTowerInfo("CID: 28945-15", "4G LTE", -92, -92, -14, 820, false, "MTN Irancell", 160f),
+            CellTowerInfo("CID: 11048-02", "4G LTE", -78, -78, -8, 210, false, "MCI (Mobile Zone)", 290f),
+            CellTowerInfo("CID: 40924-41", "5G NR", -105, -105, -18, 1450, false, "Rightel", 120f)
+        )
+        _cellTowers.value = initialTowers
+
+        cellScanJob = viewModelScope.launch(Dispatchers.IO) {
+            while (_isCellScannerRunning.value) {
+                delay(3000) // Fluctuating values slightly to simulate live tracking
+                _cellSignalStrengthRsrp.update { (it + (-2..2).random()).coerceIn(-120, -40) }
+                _cellSignalStrengthRsrq.update { (it + (-1..1).random()).coerceIn(-20, -3) }
+                _cellSignalStrengthSnr.update { (it + (-2..2).random()).coerceIn(1, 30) }
+
+                _cellTowers.update { currentList ->
+                    currentList.map { tower ->
+                        if (tower.isServing) {
+                            tower.copy(
+                                rsrp = _cellSignalStrengthRsrp.value,
+                                rsrq = _cellSignalStrengthRsrq.value,
+                                distanceMeters = (tower.distanceMeters + (-10..10).random()).coerceAtLeast(50)
+                            )
+                        } else {
+                            val rsrpFluc = (tower.rsrp + (-3..3).random()).coerceIn(-120, -40)
+                            tower.copy(
+                                rsrp = rsrpFluc,
+                                distanceMeters = (tower.distanceMeters + (-25..25).random()).coerceAtLeast(100)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun stopCellScan() {
+        cellScanJob?.cancel()
+        _isCellScannerRunning.value = false
+    }
+
+    init {
+        // Automatically spin up bg monitor on initialization if enabled
+        if (_backgroundMonitoringEnabled.value) {
+            startBackgroundMonitoringTask()
+        }
+    }
 }
+
+// ==========================================
+// --- ADDITIONAL DIAGNOSTIC DATA MODELS ---
+// ==========================================
+data class WifiScanResult(
+    val ssid: String,
+    val bssid: String,
+    val rssi: Int,
+    val channel: Int,
+    val frequencyMhz: Int,
+    val standard: String,
+    val security: String,
+    val vendor: String
+)
+
+data class SniffedPacket(
+    val timestamp: String,
+    val protocol: String,
+    val source: String,
+    val destination: String,
+    val port: String,
+    val length: Int,
+    val info: String
+)
+
+data class SnifferStats(
+    val packetsCount: Long,
+    val tcpCount: Long,
+    val udpCount: Long,
+    val otherCount: Long,
+    val dataRateKbps: Double
+)
+
+data class CellTowerInfo(
+    val towerId: String,
+    val cellType: String,
+    val rssi: Int,
+    val rsrp: Int,
+    val rsrq: Int,
+    val distanceMeters: Int,
+    val isServing: Boolean,
+    val operator: String,
+    val bearing: Float
+)
+

@@ -30,8 +30,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.style.TextAlign
 import com.example.ui.ActiveTool
 import com.example.ui.NetOpsViewModel
+import com.example.ui.CellTowerInfo
 import com.example.ui.theme.*
 import com.example.data.*
 import kotlinx.coroutines.launch
@@ -206,6 +208,24 @@ fun ToolboxScreen(
                         onClick = { viewModel.selectTool(ActiveTool.MAC_SCANNER) },
                         tag = "tool_mac_scanner"
                     )
+
+                    ToolListItem(
+                        title = "Wi-Fi Signal & Sniffer",
+                        description = "Measure real-time signal RSSI, channels, noise, standards, and capture raw packet frame dumps",
+                        icon = Icons.Default.Wifi,
+                        accentColor = ConsoleGreen,
+                        onClick = { viewModel.selectTool(ActiveTool.WIFI_DIAGNOSTICS) },
+                        tag = "tool_wifi_diagnostics"
+                    )
+
+                    ToolListItem(
+                        title = "BTS Cell Tower Diagnostics",
+                        description = "Track active cell towers, identify neighbors on sweeping radar scope, and evaluate microwave radio quality",
+                        icon = Icons.Default.CellTower,
+                        accentColor = CyberCyan,
+                        onClick = { viewModel.selectTool(ActiveTool.CELL_DIAGNOSTICS) },
+                        tag = "tool_cell_diagnostics"
+                    )
                 }
             }
 
@@ -264,6 +284,8 @@ fun ToolboxScreen(
                             ActiveTool.SNMP_DISCOVERY -> "SNMP DISCOVERY & WALK"
                             ActiveTool.WAN_KILLER -> "WAN KILLER CONGESTION"
                             ActiveTool.MAC_SCANNER -> "SUBNET MAC SCANNER"
+                            ActiveTool.WIFI_DIAGNOSTICS -> "WI-FI SIGNAL & SNIFFER"
+                            ActiveTool.CELL_DIAGNOSTICS -> "CELL RADAR & RF DIAGNOSTICS"
                             else -> "NETOPS TOOL"
                         },
                         style = MaterialTheme.typography.titleMedium,
@@ -298,6 +320,8 @@ fun ToolboxScreen(
                     ActiveTool.SNMP_DISCOVERY -> SnmpDiscoveryToolView(viewModel)
                     ActiveTool.WAN_KILLER -> WanKillerToolView(viewModel)
                     ActiveTool.MAC_SCANNER -> MacScannerToolView(viewModel)
+                    ActiveTool.WIFI_DIAGNOSTICS -> WifiDiagnosticsToolView(viewModel)
+                    ActiveTool.CELL_DIAGNOSTICS -> CellDiagnosticsToolView(viewModel)
                     else -> {}
                 }
             }
@@ -3320,6 +3344,568 @@ fun MacScannerToolView(viewModel: NetOpsViewModel) {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WifiDiagnosticsToolView(viewModel: NetOpsViewModel) {
+    val ssid by viewModel.wifiSsid.collectAsState()
+    val bssid by viewModel.wifiBssid.collectAsState()
+    val signalStrength by viewModel.wifiSignalStrength.collectAsState()
+    val noiseLevel by viewModel.wifiNoiseLevel.collectAsState()
+    val wifiType by viewModel.wifiType.collectAsState()
+    val linkSpeed by viewModel.wifiLinkSpeed.collectAsState()
+    val frequency by viewModel.wifiFrequency.collectAsState()
+
+    val isScanning by viewModel.isWifiScannerRunning.collectAsState()
+    val scanProgress by viewModel.wifiScanProgress.collectAsState()
+    val scanResults by viewModel.wifiScanResults.collectAsState()
+
+    val isSnifferRunning by viewModel.isSnifferRunning.collectAsState()
+    val snifferPackets by viewModel.snifferPackets.collectAsState()
+    val snifferStats by viewModel.snifferStats.collectAsState()
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, ConsoleGreenDim, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Wifi, contentDescription = "Wifi SSID", tint = ConsoleGreen, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(ssid, style = MaterialTheme.typography.titleMedium, color = OffWhite, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            }
+                            Text("BSSID: $bssid", style = MaterialTheme.typography.labelSmall, color = Silver, fontFamily = FontFamily.Monospace)
+                        }
+                        
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (signalStrength > -60) ConsoleGreenDim else CyberCyanDim)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text("$signalStrength dBm", color = if (signalStrength > -60) ConsoleGreen else CyberCyan, fontWeight = FontWeight.Black, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            WifiMetricCell(label = "NOISE FLOOR", value = "$noiseLevel dBm", subLabel = "SNR: ${signalStrength - noiseLevel} dB", modifier = Modifier.weight(1f))
+                            WifiMetricCell(label = "STANDARDS", value = wifiType, subLabel = "802.11 Protocol", modifier = Modifier.weight(1f))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            WifiMetricCell(label = "LINK VELOCITY", value = "$linkSpeed Mbps", subLabel = "Active Speed", modifier = Modifier.weight(1f))
+                            WifiMetricCell(label = "FREQUENCY", value = "$frequency MHz", subLabel = "Channel ${(frequency - 5000) / 5}", modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Text("DETAILED CO-CHANNEL SPECTRAL SCAN", style = MaterialTheme.typography.labelMedium, color = Silver, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, CyberGray, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (isScanning) "SCANNING FREQUENCIES..." else "SCAN COMPLIANT",
+                            color = if (isScanning) CyberCyan else ConsoleGreen,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Button(
+                            onClick = { viewModel.startWifiScan() },
+                            colors = ButtonDefaults.buttonColors(containerColor = ConsoleGreenDim, contentColor = ConsoleGreen),
+                            shape = RoundedCornerShape(6.dp),
+                            enabled = !isScanning,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("RUN AP SWEEP", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+
+                    if (isScanning) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        LinearProgressIndicator(
+                            progress = { scanProgress },
+                            color = ConsoleGreen,
+                            trackColor = CyberGray,
+                            modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp))
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    if (scanResults.isEmpty()) {
+                        Text("No scanned networks. Press SWEEP to discover airwaves...", color = DarkSilver, fontSize = 11.sp, fontFamily = FontFamily.Monospace, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp))
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            scanResults.forEach { result ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(CyberBlack, RoundedCornerShape(8.dp))
+                                        .padding(10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(result.ssid, fontSize = 12.sp, color = OffWhite, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                        Text("${result.bssid} • CH ${result.channel} • ${result.standard}", fontSize = 10.sp, color = Silver, fontFamily = FontFamily.Monospace)
+                                    }
+                                    
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text("${result.rssi} dBm", fontSize = 11.sp, color = if (result.rssi > -65) ConsoleGreen else CyberCyan, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                        Text(result.security, fontSize = 9.sp, color = DarkSilver, fontFamily = FontFamily.Monospace)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Text("NETWORK FRAME INTERCEPT (SNIFFER)", style = MaterialTheme.typography.labelMedium, color = Silver, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, CyberGray, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(if (isSnifferRunning) ConsoleGreen else CyberCrimson))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(if (isSnifferRunning) "DECRYPTOR ON AIR" else "DECRYPTOR STOPPED", fontSize = 11.sp, color = if (isSnifferRunning) ConsoleGreen else CyberCrimson, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = { if (isSnifferRunning) viewModel.stopSniffer() else viewModel.startSniffer() },
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isSnifferRunning) CyberCrimsonDim else ConsoleGreenDim, contentColor = if (isSnifferRunning) CyberCrimson else ConsoleGreen),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text(if (isSnifferRunning) "HALT ENGINE" else "START CAPTURE", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().background(CyberBlack, RoundedCornerShape(6.dp)).padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        SnifferDetailCell("TOTAL CAPTURED", "${snifferStats.packetsCount}")
+                        SnifferDetailCell("TCP SEGMENTS", "${snifferStats.tcpCount}")
+                        SnifferDetailCell("UDP DATAGRAMS", "${snifferStats.udpCount}")
+                        SnifferDetailCell("BANDWIDTH RATE", String.format("%.2f Kbps", snifferStats.dataRateKbps))
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text("FRAME HEX BUFFERSTREAM DUMP:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ConsoleGreen, fontFamily = FontFamily.Monospace)
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    if (snifferPackets.isEmpty()) {
+                        Text("Ready to hook socket raw channels. Initiate capture...", color = DarkSilver, fontSize = 11.sp, fontFamily = FontFamily.Monospace, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp))
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.Black)
+                                .padding(8.dp)
+                        ) {
+                            snifferPackets.take(6).forEach { packet ->
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row {
+                                            Text("[${packet.timestamp}]", color = ConsoleGreen, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(packet.protocol, color = CyberCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("${packet.source}:${packet.port} > ${packet.destination}", color = OffWhite, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                        }
+                                        Text("${packet.length} bytes", color = Silver, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                                    }
+                                    Text(packet.info, color = DarkSilver, fontSize = 8.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(start = 12.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WifiMetricCell(label: String, value: String, subLabel: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier
+            .padding(4.dp)
+            .border(1.dp, CyberGray, RoundedCornerShape(8.dp)),
+        colors = CardDefaults.cardColors(containerColor = CyberBlack)
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Text(label, fontSize = 8.sp, color = Silver, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(value, fontSize = 12.sp, color = ConsoleGreen, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black)
+            Text(subLabel, fontSize = 8.sp, color = DarkSilver, fontFamily = FontFamily.Monospace)
+        }
+    }
+}
+
+@Composable
+fun SnifferDetailCell(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, fontSize = 8.sp, color = Silver, fontFamily = FontFamily.Monospace)
+        Text(value, fontSize = 11.sp, color = ConsoleGreen, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun CellDiagnosticsToolView(viewModel: NetOpsViewModel) {
+    val operator by viewModel.cellOperator.collectAsState()
+    val cellType by viewModel.cellType.collectAsState()
+    val cellId by viewModel.cellId.collectAsState()
+    val tac by viewModel.cellTac.collectAsState()
+    val mccMnc by viewModel.cellMccMnc.collectAsState()
+
+    val rsrp by viewModel.cellSignalStrengthRsrp.collectAsState()
+    val rsrq by viewModel.cellSignalStrengthRsrq.collectAsState()
+    val snr by viewModel.cellSignalStrengthSnr.collectAsState()
+
+    val isScanning by viewModel.isCellScannerRunning.collectAsState()
+    val cellTowers by viewModel.cellTowers.collectAsState()
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, CyberCyanDim, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(operator, style = MaterialTheme.typography.titleMedium, color = OffWhite, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                            Text("MCC-MNC: $mccMnc", style = MaterialTheme.typography.bodySmall, color = Silver, fontFamily = FontFamily.Monospace)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(CyberCyanDim)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(cellType, color = CyberCyan, fontWeight = FontWeight.Bold, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column {
+                            Text("CONNECTED CELL IDENTIFIER (CID)", fontSize = 8.sp, color = Silver, fontFamily = FontFamily.Monospace)
+                            Text(cellId, fontSize = 13.sp, color = OffWhite, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("TRACKING AREA CODE (TAC)", fontSize = 8.sp, color = Silver, fontFamily = FontFamily.Monospace)
+                            Text(tac, fontSize = 13.sp, color = OffWhite, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Text("RADIO FREQUENCY SIGNAL PROPAGATION METRICS", style = MaterialTheme.typography.labelSmall, color = Silver, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, CyberGray, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    SignalProgressMeter(
+                        label = "Reference Signal Received Power (RSRP)",
+                        value = "$rsrp dBm",
+                        progress = ((rsrp + 140f) / 100f).coerceIn(0f, 1f),
+                        evalText = when {
+                            rsrp > -80 -> "EXCELLENT PENETRATION"
+                            rsrp > -95 -> "ACCEPTABLE GAIN"
+                            else -> "SEVERE MICROWAVE ATTENUATING"
+                        },
+                        activeColor = ConsoleGreen
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    SignalProgressMeter(
+                        label = "Reference Signal Received Quality (RSRQ)",
+                        value = "$rsrq dB",
+                        progress = ((rsrq + 20f) / 17f).coerceIn(0f, 1f),
+                        evalText = when {
+                            rsrq > -10 -> "HIGH SPECTRAL INTEGRITY"
+                            rsrq > -15 -> "CONGESTED CELL CHANNEL"
+                            else -> "SEVERE CO-CHANNEL SPURIOUS INTERFERENCE"
+                        },
+                        activeColor = CyberCyan
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().background(CyberBlack, RoundedCornerShape(8.dp)).padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("SIGNAL-TO-NOISE RATIO (SNR)", fontSize = 10.sp, color = Silver, fontFamily = FontFamily.Monospace)
+                            Text("Carrier purity margin", fontSize = 8.sp, color = DarkSilver, fontFamily = FontFamily.Monospace)
+                        }
+                        Text("$snr dB", fontSize = 14.sp, color = if (snr > 15) ConsoleGreen else CyberCyan, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+        }
+
+        item {
+            Text("SURROUNDING MICROWAVE CELL SECTORS (BTS SCAN)", style = MaterialTheme.typography.labelSmall, color = Silver, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, CyberGray, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = if (isScanning) "RADAR SCANNING LIVE" else "BTS SCANNER READY",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isScanning) ConsoleGreen else OffWhite,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Text("Active sweeping sweeps azimuth angles", fontSize = 9.sp, color = DarkSilver, fontFamily = FontFamily.Monospace)
+                        }
+
+                        Button(
+                            onClick = { if (isScanning) viewModel.stopCellScan() else viewModel.startCellScan() },
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isScanning) CyberCrimsonDim else ConsoleGreenDim, contentColor = if (isScanning) CyberCrimson else ConsoleGreen),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text(if (isScanning) "HALT RADAR" else "SWEEP CELL TOWER", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CellRadarScopeView(cellTowers)
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("DISCOVERED CARRIER BTS NODES:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = ConsoleGreen, fontFamily = FontFamily.Monospace)
+                            
+                            if (cellTowers.isEmpty()) {
+                                Text("No discovered sectors. Execute SWEEP scanner...", color = DarkSilver, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                            } else {
+                                cellTowers.forEach { tower ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(CyberBlack, RoundedCornerShape(4.dp))
+                                            .padding(6.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(modifier = Modifier.size(4.dp).clip(RoundedCornerShape(2.dp)).background(if (tower.isServing) ConsoleGreen else CyberCyan))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(tower.towerId, fontSize = 9.sp, color = OffWhite, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                                            }
+                                            Text("${tower.operator} • ${tower.cellType}", fontSize = 8.sp, color = Silver, fontFamily = FontFamily.Monospace)
+                                        }
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Text("${tower.rsrp} dBm", fontSize = 9.sp, color = if (tower.isServing) ConsoleGreen else OffWhite, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                            Text("${tower.distanceMeters} meters", fontSize = 8.sp, color = DarkSilver, fontFamily = FontFamily.Monospace)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SignalProgressMeter(
+    label: String,
+    value: String,
+    progress: Float,
+    evalText: String,
+    activeColor: Color
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, fontSize = 9.sp, color = Silver, fontFamily = FontFamily.Monospace)
+            Text(value, fontSize = 10.sp, color = activeColor, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        LinearProgressIndicator(
+            progress = { progress },
+            color = activeColor,
+            trackColor = CyberGray,
+            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp))
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(evalText, fontSize = 8.sp, color = DarkSilver, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun CellRadarScopeView(towers: List<CellTowerInfo>) {
+    var angleOffset by remember { mutableStateOf(0f) }
+    LaunchedEffect(Unit) {
+        while(true) {
+            delay(40)
+            angleOffset = (angleOffset + 2.5f) % 360f
+        }
+    }
+    
+    Box(
+        modifier = Modifier
+            .size(110.dp)
+            .background(Color.Black, shape = RoundedCornerShape(55.dp))
+            .border(1.dp, ConsoleGreen.copy(alpha = 0.25f), RoundedCornerShape(55.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+            val center = size.width / 2
+            val radius = size.width / 2
+            
+            drawCircle(color = ConsoleGreen.copy(alpha = 0.12f), radius = radius * 0.33f, style = Stroke(1f))
+            drawCircle(color = ConsoleGreen.copy(alpha = 0.12f), radius = radius * 0.66f, style = Stroke(1f))
+            drawCircle(color = ConsoleGreen.copy(alpha = 0.12f), radius = radius * 0.95f, style = Stroke(1f))
+            
+            drawLine(color = ConsoleGreen.copy(alpha = 0.12f), start = Offset(0f, center), end = Offset(size.width, center), strokeWidth = 1f)
+            drawLine(color = ConsoleGreen.copy(alpha = 0.12f), start = Offset(center, 0f), end = Offset(center, size.height), strokeWidth = 1f)
+            
+            val sweepRadians = Math.toRadians(angleOffset.toDouble())
+            val sweepX = center + radius * Math.cos(sweepRadians).toFloat()
+            val sweepY = center + radius * Math.sin(sweepRadians).toFloat()
+            drawLine(
+                color = ConsoleGreen.copy(alpha = 0.45f),
+                start = Offset(center, center),
+                end = Offset(sweepX, sweepY),
+                strokeWidth = 2f
+            )
+            
+            towers.forEach { tower ->
+                val distFactor = (tower.distanceMeters / 1600f).coerceIn(0.15f, 0.85f)
+                val towerRad = radius * distFactor
+                val towerAngleRad = Math.toRadians(tower.bearing.toDouble())
+                val tx = center + towerRad * Math.cos(towerAngleRad).toFloat()
+                val ty = center + towerRad * Math.sin(towerAngleRad).toFloat()
+                
+                val pointColor = if (tower.isServing) ConsoleGreen else CyberCyan
+                val pointRadius = if (tower.isServing) 4.5.dp.toPx() else 3.dp.toPx()
+                
+                drawCircle(
+                    color = pointColor,
+                    radius = pointRadius,
+                    center = Offset(tx, ty)
+                )
+                
+                if (tower.isServing) {
+                    drawCircle(
+                        color = pointColor.copy(alpha = 0.3f),
+                        radius = pointRadius + (angleOffset % 20f) / 20f * 8.dp.toPx(),
+                        center = Offset(tx, ty),
+                        style = Stroke(1.dp.toPx())
+                    )
                 }
             }
         }
