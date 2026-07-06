@@ -1,0 +1,73 @@
+name: Build & Release APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag"
+        required: false
+        default: "v1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: current
+
+      - name: Generate signing keystore
+        run: |
+          STORE_PASSWORD=$(openssl rand -hex 16)
+          echo "::add-mask::$STORE_PASSWORD"
+          echo "STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/upload-keystore.jks" >> "$GITHUB_ENV"
+          keytool -genkeypair -v \
+            -keystore "$RUNNER_TEMP/upload-keystore.jks" \
+            -alias upload \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass "$STORE_PASSWORD" -keypass "$STORE_PASSWORD" \
+            -dname "CN=NetOps Mobile, OU=NetOps, O=NetOps, C=IR"
+
+      - name: Build release APK
+        run: gradle :app:assembleRelease
+
+      - name: Rename APK
+        run: |
+          TAG="${{ github.event.inputs.tag || 'v1.0' }}"
+          cp app/build/outputs/apk/release/app-release.apk "NetOps-${TAG}.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netops-apk
+          path: NetOps-*.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || 'v1.0' }}
+          name: NetOps Mobile ${{ github.event.inputs.tag || 'v1.0' }}
+          target_commitish: ${{ github.sha }}
+          make_latest: "true"
+          files: NetOps-*.apk
+          body: |
+            NetOps Mobile — all-in-one offline toolbox, device monitor, and SSH client for network engineers.
+
+            **Install:** download `NetOps-*.apk` below and open it on your Android device (Android 7.0+ / API 24+).
+
+            > Note: the APK is signed with a per-build self-signed key. To update over a previously installed build, uninstall the old version first.
