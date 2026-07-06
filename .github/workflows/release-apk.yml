@@ -1,6 +1,11 @@
 name: Build & Release APK
 
 on:
+  push:
+    branches:
+      - claude/apk-github-release-totgmg
+    paths:
+      - ".github/workflows/release-apk.yml"
   workflow_dispatch:
     inputs:
       tag:
