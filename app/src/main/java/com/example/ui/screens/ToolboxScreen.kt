@@ -700,6 +700,7 @@ fun PingToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.PING) }
     }
 }
 
@@ -873,6 +874,7 @@ fun PortScannerToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.PORT_SCANNER) }
     }
 }
 
@@ -985,6 +987,7 @@ fun SubnetCalcToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.SUBNET_CALC) }
     }
 }
 
@@ -1083,6 +1086,7 @@ fun DnsLookupToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.DNS_LOOKUP) }
     }
 }
 
@@ -1214,6 +1218,7 @@ fun WakeOnLanToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.WAKE_ON_LAN) }
     }
 }
 
@@ -1952,6 +1957,7 @@ fun TracerouteToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.TRACEROUTE) }
     }
 }
 
@@ -2162,6 +2168,7 @@ fun WhoisLookupToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.WHOIS_LOOKUP) }
     }
 }
 
@@ -2375,6 +2382,7 @@ fun SpeedTestToolView(viewModel: NetOpsViewModel) {
                 )
             }
         }
+        item { DiagnosticHintCard(ActiveTool.SPEED_TEST) }
     }
 }
 
@@ -2761,6 +2769,7 @@ fun TrafficGenToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.TRAFFIC_GENERATOR) }
     }
 }
 
@@ -2912,6 +2921,7 @@ fun BandwidthTestToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.BANDWIDTH_TEST) }
     }
 }
 
@@ -3078,6 +3088,7 @@ fun SnmpDiscoveryToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.SNMP_DISCOVERY) }
     }
 }
 
@@ -3199,6 +3210,7 @@ fun WanKillerToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.WAN_KILLER) }
     }
 }
 
@@ -3347,6 +3359,7 @@ fun MacScannerToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.MAC_SCANNER) }
     }
 }
 
@@ -3520,16 +3533,39 @@ fun WifiDiagnosticsToolView(viewModel: NetOpsViewModel) {
                             Box(modifier = Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(if (isSnifferRunning) ConsoleGreen else CyberCrimson))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(if (isSnifferRunning) "DECRYPTOR ON AIR" else "DECRYPTOR STOPPED", fontSize = 11.sp, color = if (isSnifferRunning) ConsoleGreen else CyberCrimson, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                            Text(" • ${viewModel.getActiveInterfaceName()}", fontSize = 10.sp, color = Silver, fontFamily = FontFamily.Monospace)
                         }
 
-                        Button(
-                            onClick = { if (isSnifferRunning) viewModel.stopSniffer() else viewModel.startSniffer() },
-                            colors = ButtonDefaults.buttonColors(containerColor = if (isSnifferRunning) CyberCrimsonDim else ConsoleGreenDim, contentColor = if (isSnifferRunning) CyberCrimson else ConsoleGreen),
-                            shape = RoundedCornerShape(6.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
-                            modifier = Modifier.height(28.dp)
-                        ) {
-                            Text(if (isSnifferRunning) "HALT ENGINE" else "START CAPTURE", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (snifferPackets.isNotEmpty()) {
+                                val context = androidx.compose.ui.platform.LocalContext.current
+                                Button(
+                                    onClick = {
+                                        val exportedFile = viewModel.exportSnifferLog(context)
+                                        if (exportedFile != null) {
+                                            android.widget.Toast.makeText(context, "Saved to Downloads: $exportedFile", android.widget.Toast.LENGTH_LONG).show()
+                                        } else {
+                                            android.widget.Toast.makeText(context, "Export failed", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = CyberCyan.copy(alpha = 0.2f), contentColor = CyberCyan),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(28.dp)
+                                ) {
+                                    Text("EXPORT CSV", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                }
+                            }
+
+                            Button(
+                                onClick = { if (isSnifferRunning) viewModel.stopSniffer() else viewModel.startSniffer() },
+                                colors = ButtonDefaults.buttonColors(containerColor = if (isSnifferRunning) CyberCrimsonDim else ConsoleGreenDim, contentColor = if (isSnifferRunning) CyberCrimson else ConsoleGreen),
+                                shape = RoundedCornerShape(6.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text(if (isSnifferRunning) "HALT ENGINE" else "START CAPTURE", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            }
                         }
                     }
 
@@ -3585,6 +3621,7 @@ fun WifiDiagnosticsToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.WIFI_DIAGNOSTICS) }
     }
 }
 
@@ -3817,6 +3854,7 @@ fun CellDiagnosticsToolView(viewModel: NetOpsViewModel) {
                 }
             }
         }
+        item { DiagnosticHintCard(ActiveTool.CELL_DIAGNOSTICS) }
     }
 }
 
@@ -3906,6 +3944,175 @@ fun CellRadarScopeView(towers: List<CellTowerInfo>) {
                         center = Offset(tx, ty),
                         style = Stroke(1.dp.toPx())
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DiagnosticHintCard(tool: ActiveTool) {
+    var expanded by remember { mutableStateOf(true) }
+    
+    val hintData = remember(tool) {
+        when (tool) {
+            ActiveTool.PING -> Triple(
+                "ICMP & SOCKET TRANSMISSION MECHANICS",
+                "• Syscalls: On standard Linux, Ping constructs an ICMP Echo Request (Type 8) packet, transmitting it over raw sockets.\n• Android Sandbox: Because standard user applications do not hold the raw socket permission (CAP_NET_RAW), this utility executes a wrapper around the native /system/bin/ping binary or falls back to standard TCP 3-way handshake connect calls (sockets port 80/443) which run fully inside the user-space sandbox.\n• Jitter & Latency: Real-world packet latency is measured via epoch millisecond timestamps before and after socket operations. Jitter represents the mean of absolute RTT variations.",
+                "ping -c 4 -i 1.0 -s 56 <host>"
+            )
+            ActiveTool.PORT_SCANNER -> Triple(
+                "PORT SCAN handshakes & RESPONSES",
+                "• Syscalls: Scans connect to remote endpoints using standard TCP three-way handshake attempts (socket connect). \n• Android Sandbox: A rooted device can execute SYN-only half-open stealth scans (nmap -sS) via raw socket injection. Standard Android sandbox apps must perform full three-way handshakes (SYN -> SYN-ACK -> ACK -> RST/FIN) which are logged as complete connections.\n• States: \n  - OPEN: Connection completed successfully (syn-ack received)\n  - CLOSED: RST packet returned instantly by host OS kernel\n  - FILTERED: Silent packet drop by firewall (timeouts)",
+                "nmap -sT -p 1-1024 <host>"
+            )
+            ActiveTool.SUBNET_CALC -> Triple(
+                "IP SUB-NETTING MATHEMATICS",
+                "• Logic: Bitwise AND operations pair IP addresses with netmasks. CIDR (Classless Inter-Domain Routing) values dictate network vs. host divisions.\n• Math:\n  - Network Address = IP Address AND Netmask\n  - Broadcast Address = IP Address OR (NOT Netmask)\n  - Host Capacity = 2^(32 - CIDR) - 2 (standard IPv4 limits network & broadcast bounds).\n• Sandbox: Independent local mathematical computation; does not trigger external socket requests.",
+                "ipcalc <ip_address>/<cidr>"
+            )
+            ActiveTool.DNS_LOOKUP -> Triple(
+                "DNS SYSTEM QUERIES & RESOLVERS",
+                "• Syscalls: Executes standard libc getaddrinfo() or UDP/TCP port 53 sockets. Resolves hostname labels into IPv4 (A), IPv6 (AAAA), mail exchanges (MX), or canonical records (CNAME).\n• Android Sandbox: Handled by the OS resolver thread, which queries nameservers specified in system properties or DHCP configs.\n• TTL (Time To Live): Tells local clients how many seconds to cache DNS results before re-querying nameservers.",
+                "dig ANY <domain_name> @8.8.8.8"
+            )
+            ActiveTool.WAKE_ON_LAN -> Triple(
+                "WOL BROADCAST & MULTICAST FRAMES",
+                "• Syscalls: Constructs a 102-byte Magic Packet consisting of a synchronization stream (6 bytes of 0xFF) followed by 16 repetitions of the target device's 48-bit MAC address.\n• Transmission: Dispatched as a UDP broadcast payload across port 7 or 9 to local broadcast boundaries (255.255.255.255) or unicast router routes.\n• Sandbox: Standard UDP sockets. Relies on local network profile routing to forward broadcast frames safely.",
+                "wakeonlan -i 255.255.255.255 -p 9 <mac_address>"
+            )
+            ActiveTool.TRACEROUTE -> Triple(
+                "INCREMENTAL TTL EXPIRY TELEMETRY",
+                "• Syscalls: Increments the IP header TTL (Time-To-Live) starting at 1. Each consecutive router along the path decrements TTL by 1. When a router hits TTL=0, it discards the frame and fires back an ICMP Type 11 (Time Exceeded) payload.\n• Android Sandbox: Sandboxed apps cannot sniff incoming ICMP Type 11 packets on standard sockets without raw socket bindings (CAP_NET_RAW). This tool simulates the incremental TTL response hops based on real-world trace heuristics.",
+                "traceroute -I <host>  # ICMP-based traceroute"
+            )
+            ActiveTool.WHOIS_LOOKUP -> Triple(
+                "WHOIS DIRECTORY QUERIES",
+                "• Syscalls: Opens a direct TCP socket connection to Registrar WHOIS servers (typically port 43) transmitting ASCII-encoded domain names.\n• Android Sandbox: Operates normally over outbound TCP sockets. Coordinates geolocation queries with public WHOIS and MaxMind/IP-API endpoints to pinpoint servers.",
+                "whois <domain_name>"
+            )
+            ActiveTool.SPEED_TEST -> Triple(
+                "SPEED TEST BENCHMARK ENGINE",
+                "• Mechanics: Establishes multiple concurrent TCP/HTTP connections to close CDN endpoints, measuring raw byte transmission rate per second.\n• Jitter & Latency: Gauges ping fluctuation over loaded lines. High loaded-ping reveals bufferbloat issues in intermediate routers.\n• Sandbox: Standard HTTP/TCP sockets; throttled strictly by local device cellular/WiFi hardware caps.",
+                "speedtest-cli"
+            )
+            ActiveTool.TRAFFIC_GENERATOR -> Triple(
+                "STRESS TESTING & TRAFFIC PACKETS",
+                "• Mechanics: Fires sequential UDP datagrams or TCP streams to a custom remote address/port at high rates to stress route performance and measure packet loss.\n• Sandbox: Runs in standard user-space coroutines. Maximum throughput is limited by CPU context switches and Android thread priorities compared to native kernel-level packet engines.",
+                "iperf3 -c <host> -u -b 10M -t 10"
+            )
+            ActiveTool.BANDWIDTH_TEST -> Triple(
+                "BANDWIDTH BENCHMARKING FLOWS",
+                "• Mechanics: Works as an iPerf-style client/server system. The client sends bulk byte packages while the server tallies and reports total throughput per interval.\n• TCP vs UDP: TCP handles congestion control, which limits raw speeds. UDP blasts stateless frames, testing true raw medium capacity.",
+                "iperf3 -c <host> -p 5201"
+            )
+            ActiveTool.SNMP_DISCOVERY -> Triple(
+                "SNMP TELEMETRY & MIB TREE",
+                "• Mechanics: Transmits UDP packets to agent port 161 with request-PDU formats. Pulls device statistics using Object Identifiers (OIDs) within Management Information Base (MIB) schemas.\n• Security: Uses community string filters (default 'public'). SNMPv3 adds authentication and crypto.",
+                "snmpwalk -v 2c -c public <host> 1.3.6.1.2.1"
+            )
+            ActiveTool.WAN_KILLER -> Triple(
+                "CONGESTION TESTING & WAN BOTTLENECKS",
+                "• Mechanics: Generates steady stateless UDP packet floods to flood target ports, simulating congestion events to verify buffer sizes and router rate limits.\n• Sandbox: Operates fully on user-space background threads. Limited by scheduling priority constraints to prevent complete system lockups.",
+                "udpflood <host> -p 9999 -s 1024"
+            )
+            ActiveTool.MAC_SCANNER -> Triple(
+                "ARP TABLES & NEIGHBOR DISCOVERY",
+                "• Mechanics: Resolves IP addresses to MAC addresses on local subnets via ARP (Address Resolution Protocol).\n• Android Sandbox: Android 10+ restricts access to the system ARP cache table (/proc/net/arp) for privacy. This utility queries nearby devices or simulates state mappings utilizing valid OUI databases for vendor identification.",
+                "ip neighbor show  # Standard Linux ARP table query"
+            )
+            ActiveTool.WIFI_DIAGNOSTICS -> Triple(
+                "WI-FI SPECTRUM & PCAP DECRYPTION",
+                "• RSSI: Received Signal Strength Indicator measured in dBm (decibel-milliwatts). 0 to -50 is excellent, below -80 indicates severe packet loss.\n• Android Sandbox: WiFi details (BSSID, SSID, frequency) require ACCESS_FINE_LOCATION and hardware GPS to be toggled on. PCAP sniffer is captured from local adapter wlan0 utilizing real-time sockets fallback.",
+                "tcpdump -i wlan0 -vvv"
+            )
+            ActiveTool.CELL_DIAGNOSTICS -> Triple(
+                "CELLULAR TELEMETRY & BTS SIGNALS",
+                "• Signal RSSI/RSRP: Reference Signal Received Power measures absolute LTE strength. Below -115 dBm is weak cell reception.\n• Provider APIs: Polled from TelephonyManager. Requires ACCESS_FINE_LOCATION permission to query LAC (Location Area Code) and CID (Cell Identity). Serving cells map directly to nearest BTS (Base Transceiver Station).",
+                "dumpsys telephony.registry"
+            )
+            else -> null
+        }
+    }
+    
+    if (hintData == null) return
+    
+    val (title, explanation, terminalCmd) = hintData
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp, bottom = 8.dp)
+            .border(1.dp, ConsoleGreen.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+        colors = CardDefaults.cardColors(containerColor = CyberDark)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Technical Info",
+                        tint = ConsoleGreen,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ConsoleGreen,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        letterSpacing = 1.sp
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Toggle Details",
+                    tint = Silver,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            
+            AnimatedVisibility(visible = expanded) {
+                Column {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = explanation,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = OffWhite,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Text(
+                        text = "REAL-WORLD TERMINAL EQUIVALENT:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = CyberCyan,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.Black, RoundedCornerShape(6.dp))
+                            .border(1.dp, CyberGray, RoundedCornerShape(6.dp))
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = terminalCmd,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ConsoleGreen,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
                 }
             }
         }

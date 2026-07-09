@@ -36,6 +36,7 @@ fun DevicesScreen(
     val devices by viewModel.selectedSiteDevices.collectAsState()
 
     var showAddSiteDialog by remember { mutableStateOf(false) }
+    var showEditSiteDialog by remember { mutableStateOf(false) }
     var showAddDeviceDialog by remember { mutableStateOf(false) }
 
     // Dialog input states
@@ -44,6 +45,12 @@ fun DevicesScreen(
     var siteSubnet by remember { mutableStateOf("24") }
     var siteVpnConfig by remember { mutableStateOf("") }
     var siteNotes by remember { mutableStateOf("") }
+
+    var editSiteName by remember { mutableStateOf("") }
+    var editSiteGatewayIp by remember { mutableStateOf("") }
+    var editSiteSubnet by remember { mutableStateOf("24") }
+    var editSiteVpnConfig by remember { mutableStateOf("") }
+    var editSiteNotes by remember { mutableStateOf("") }
 
     var devName by remember { mutableStateOf("") }
     var devIpAddress by remember { mutableStateOf("") }
@@ -96,20 +103,20 @@ fun DevicesScreen(
 
         // Horizontal listing of sites
         item {
-            Row(
+            androidx.compose.foundation.lazy.LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                sites.forEach { site ->
+                items(sites) { site ->
                     val isSelected = site.id == selectedSiteId
                     Card(
                         modifier = Modifier
-                            .weight(1f)
-                            .border(1.dp, if (isSelected) ConsoleGreen else CyberGray, RoundedCornerShape(8.dp))
+                            .width(180.dp)
+                            .border(1.dp, if (isSelected) ConsoleGreen else CyberGray, RoundedCornerShape(12.dp))
                             .clickable { viewModel.selectSite(site.id) },
                         colors = CardDefaults.cardColors(containerColor = if (isSelected) CyberDark else CyberBlack)
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column(modifier = Modifier.padding(14.dp)) {
                             Text(
                                 text = site.name,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -118,11 +125,13 @@ fun DevicesScreen(
                                 maxLines = 1,
                                 fontFamily = FontFamily.Monospace
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Gateway: ${site.gatewayIp}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Silver
+                                color = Silver,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 1
                             )
                         }
                     }
@@ -153,16 +162,36 @@ fun DevicesScreen(
                                 fontFamily = FontFamily.Monospace
                             )
 
-                            Text(
-                                text = "DELETE SITE",
-                                modifier = Modifier
-                                    .clickable { viewModel.deleteSite(site.id) }
-                                    .padding(4.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = CyberCrimson,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(
+                                    text = "EDIT PROFILE",
+                                    modifier = Modifier
+                                        .clickable {
+                                            editSiteName = site.name
+                                            editSiteGatewayIp = site.gatewayIp
+                                            editSiteSubnet = site.subnetMask
+                                            editSiteVpnConfig = site.vpnConfig
+                                            editSiteNotes = site.notes
+                                            showEditSiteDialog = true
+                                        }
+                                        .padding(4.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = ConsoleGreen,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                )
+
+                                Text(
+                                    text = "DELETE SITE",
+                                    modifier = Modifier
+                                        .clickable { viewModel.deleteSite(site.id) }
+                                        .padding(4.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = CyberCrimson,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -359,6 +388,74 @@ fun DevicesScreen(
         )
     }
 
+    // Edit Site Dialog
+    if (showEditSiteDialog && selectedSiteId != null) {
+        AlertDialog(
+            onDismissRequest = { showEditSiteDialog = false },
+            title = { Text("EDIT NETWORK SITE", fontFamily = FontFamily.Monospace, color = ConsoleGreen) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = editSiteName,
+                        onValueChange = { editSiteName = it },
+                        label = { Text("Site / Profile Name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = editSiteGatewayIp,
+                        onValueChange = { editSiteGatewayIp = it },
+                        label = { Text("Default Gateway IP Address") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = editSiteSubnet,
+                        onValueChange = { editSiteSubnet = it },
+                        label = { Text("Subnet CIDR Prefix (e.g. 24)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = editSiteVpnConfig,
+                        onValueChange = { editSiteVpnConfig = it },
+                        label = { Text("VPN Connection Shortcut Name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = editSiteNotes,
+                        onValueChange = { editSiteNotes = it },
+                        label = { Text("Custom Notes") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (editSiteName.isNotEmpty()) {
+                            viewModel.updateSite(
+                                id = selectedSiteId!!,
+                                name = editSiteName,
+                                gateway = editSiteGatewayIp,
+                                subnet = editSiteSubnet,
+                                vpn = editSiteVpnConfig,
+                                notes = editSiteNotes
+                            )
+                            showEditSiteDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ConsoleGreen, contentColor = CyberBlack)
+                ) {
+                    Text("SAVE CHANGES")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditSiteDialog = false }) {
+                    Text("CANCEL")
+                }
+            },
+            containerColor = CyberDark
+        )
+    }
+
     // Add Device Dialog
     if (showAddDeviceDialog) {
         val typeOptions = listOf("Router", "Switch", "Server", "VM", "Other")
@@ -382,17 +479,47 @@ fun DevicesScreen(
                         modifier = Modifier.fillMaxWidth().testTag("add_device_ip_input")
                     )
 
+                    var typeDropdownExpanded by remember { mutableStateOf(false) }
+                    var vendorDropdownExpanded by remember { mutableStateOf(false) }
+
                     // Device type picker
                     Column {
                         Text("Device Type", style = MaterialTheme.typography.bodySmall, color = Silver)
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            typeOptions.forEach { type ->
-                                FilterChip(
-                                    selected = devType == type,
-                                    onClick = { devType = type },
-                                    label = { Text(type, style = MaterialTheme.typography.labelSmall) },
-                                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = CyberCyan, selectedLabelColor = CyberBlack)
-                                )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = devType,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = {
+                                    IconButton(onClick = { typeDropdownExpanded = !typeDropdownExpanded }) {
+                                        Icon(
+                                            imageVector = if (typeDropdownExpanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                            contentDescription = "Expand Type"
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable { typeDropdownExpanded = true }
+                            )
+                            DropdownMenu(
+                                expanded = typeDropdownExpanded,
+                                onDismissRequest = { typeDropdownExpanded = false },
+                                modifier = Modifier.fillMaxWidth(0.8f).background(CyberDark).border(1.dp, CyberGray)
+                            ) {
+                                typeOptions.forEach { type ->
+                                    DropdownMenuItem(
+                                        text = { Text(type, color = OffWhite, fontFamily = FontFamily.Monospace) },
+                                        onClick = {
+                                            devType = type
+                                            typeDropdownExpanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -400,14 +527,41 @@ fun DevicesScreen(
                     // Vendor picker
                     Column {
                         Text("Hardware Vendor", style = MaterialTheme.typography.bodySmall, color = Silver)
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            vendorOptions.forEach { vendor ->
-                                FilterChip(
-                                    selected = devVendor == vendor,
-                                    onClick = { devVendor = vendor },
-                                    label = { Text(vendor, style = MaterialTheme.typography.labelSmall) },
-                                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = ConsoleGreen, selectedLabelColor = CyberBlack)
-                                )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = devVendor,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = {
+                                    IconButton(onClick = { vendorDropdownExpanded = !vendorDropdownExpanded }) {
+                                        Icon(
+                                            imageVector = if (vendorDropdownExpanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                            contentDescription = "Expand Vendor"
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable { vendorDropdownExpanded = true }
+                            )
+                            DropdownMenu(
+                                expanded = vendorDropdownExpanded,
+                                onDismissRequest = { vendorDropdownExpanded = false },
+                                modifier = Modifier.fillMaxWidth(0.8f).background(CyberDark).border(1.dp, CyberGray)
+                            ) {
+                                vendorOptions.forEach { vendor ->
+                                    DropdownMenuItem(
+                                        text = { Text(vendor, color = OffWhite, fontFamily = FontFamily.Monospace) },
+                                        onClick = {
+                                            devVendor = vendor
+                                            vendorDropdownExpanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

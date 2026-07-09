@@ -48,6 +48,10 @@ class NetOpsViewModel(application: Application) : AndroidViewModel(application) 
     private val _selectedSiteId = MutableStateFlow<Int?>(null)
     val selectedSiteId: StateFlow<Int?> = _selectedSiteId.asStateFlow()
 
+    val selectedSite: StateFlow<Site?> = combine(sites, _selectedSiteId) { siteList, selectedId ->
+        siteList.find { it.id == selectedId } ?: siteList.firstOrNull()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     val selectedSiteDevices: StateFlow<List<Device>> = _selectedSiteId
         .flatMapLatest { id ->
             if (id != null) repository.getDevicesForSite(id) else flowOf(emptyList())
@@ -232,7 +236,11 @@ class NetOpsViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
         }
-        updateLocalNetworkContext()
+        viewModelScope.launch {
+            selectedSite.collect {
+                updateLocalNetworkContext()
+            }
+        }
         calculateSubnetInfo()
     }
 
@@ -277,8 +285,14 @@ class NetOpsViewModel(application: Application) : AndroidViewModel(application) 
                     contextMap["Interface"] = "cellular/unconnected"
                     contextMap["Local IP"] = "127.0.0.1"
                 }
-                // Try to resolve standard gateway address
-                contextMap["Default Gateway"] = "192.168.1.1"
+                // Try to resolve standard gateway address dynamically from selected site
+                val activeSite = selectedSite.value
+                val gateway = if (activeSite != null && activeSite.gatewayIp.isNotEmpty()) {
+                    activeSite.gatewayIp
+                } else {
+                    "192.168.1.1"
+                }
+                contextMap["Default Gateway"] = gateway
                 contextMap["Network State"] = "Connected (LAN Mode)"
             } catch (e: Exception) {
                 contextMap["Error"] = e.localizedMessage ?: "Unknown network exception"
@@ -476,7 +490,7 @@ class NetOpsViewModel(application: Application) : AndroidViewModel(application) 
 
     // --- PERSISTENCE WRITING ---
 
-    // Site Add/Delete
+    // Site Add/Delete/Update
     fun addSite(name: String, gateway: String, subnet: String, vpn: String, notes: String) {
         viewModelScope.launch {
             repository.insertSite(
@@ -488,6 +502,23 @@ class NetOpsViewModel(application: Application) : AndroidViewModel(application) 
                     notes = notes
                 )
             )
+        }
+    }
+
+    fun updateSite(id: Int, name: String, gateway: String, subnet: String, vpn: String, notes: String) {
+        viewModelScope.launch {
+            repository.insertSite(
+                Site(
+                    id = id,
+                    name = name,
+                    gatewayIp = gateway,
+                    subnetMask = subnet,
+                    vpnConfig = vpn,
+                    notes = notes
+                )
+            )
+            // Refresh local network gateway/context
+            updateLocalNetworkContext()
         }
     }
 
@@ -1407,6 +1438,28 @@ class NetOpsViewModel(application: Application) : AndroidViewModel(application) 
     private val _showDeviceInventory = MutableStateFlow(true)
     val showDeviceInventory: StateFlow<Boolean> = _showDeviceInventory.asStateFlow()
 
+    // New customizations
+    private val _bottomBarStyle = MutableStateFlow("match_theme")
+    val bottomBarStyle: StateFlow<String> = _bottomBarStyle.asStateFlow()
+
+    private val _bottomBarLabelVisibility = MutableStateFlow("always")
+    val bottomBarLabelVisibility: StateFlow<String> = _bottomBarLabelVisibility.asStateFlow()
+
+    private val _bottomBarDensity = MutableStateFlow("normal")
+    val bottomBarDensity: StateFlow<String> = _bottomBarDensity.asStateFlow()
+
+    private val _homeLayoutStyle = MutableStateFlow("single_column")
+    val homeLayoutStyle: StateFlow<String> = _homeLayoutStyle.asStateFlow()
+
+    private val _homeGreetingText = MutableStateFlow("SYSTEM TELEMETRY ENGINE")
+    val homeGreetingText: StateFlow<String> = _homeGreetingText.asStateFlow()
+
+    fun setBottomBarStyle(style: String) { _bottomBarStyle.value = style }
+    fun setBottomBarLabelVisibility(visibility: String) { _bottomBarLabelVisibility.value = visibility }
+    fun setBottomBarDensity(density: String) { _bottomBarDensity.value = density }
+    fun setHomeLayoutStyle(style: String) { _homeLayoutStyle.value = style }
+    fun setHomeGreetingText(text: String) { _homeGreetingText.value = text }
+
     fun setTheme(theme: com.example.ui.theme.NetOpsTheme) {
         _activeTheme.value = theme
         com.example.ui.theme.ThemeManager.currentTheme = theme
@@ -1613,6 +1666,52 @@ class NetOpsViewModel(application: Application) : AndroidViewModel(application) 
     fun stopSniffer() {
         snifferJob?.cancel()
         _isSnifferRunning.value = false
+    }
+
+    fun getActiveInterfaceName(): String {
+        try {
+            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
+            for (iface in java.util.Collections.list(interfaces)) {
+                if (iface.isUp && !iface.isLoopback) {
+                    return iface.name
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return "wlan0"
+    }
+
+    fun exportSnifferLog(context: android.content.Context): String? {
+        val packets = _snifferPackets.value
+        if (packets.isEmpty()) return null
+
+        try {
+            val csvContent = StringBuilder()
+            csvContent.append("Timestamp,Protocol,Source,Destination,Port,LengthBytes,Details\n")
+            packets.forEach { p ->
+                val escapedInfo = p.info.replace("\"", "\"\"")
+                csvContent.append("\"${p.timestamp}\",\"${p.protocol}\",\"${p.source}\",\"${p.destination}\",\"${p.port}\",${p.length},\"$escapedInfo\"\n")
+            }
+
+            val fileName = "NetOps_Sniffer_Capture_${System.currentTimeMillis()}.csv"
+            val resolver = context.contentResolver
+            val contentValues = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "text/csv")
+                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                resolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(csvContent.toString().toByteArray())
+                }
+            }
+            return fileName
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
     }
 
     // ==========================================

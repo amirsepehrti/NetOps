@@ -6,7 +6,12 @@ enum class NetOpsTheme {
     NORD_SLATE,
     MATRIX_GREEN,
     CYBERPUNK_NEO,
-    OCEAN_BLUE
+    OCEAN_BLUE,
+    SOLARIZED_DARK,
+    DRACULA,
+    MONOKAI_PRO,
+    RETRO_GOLD,
+    CLASSIC_LIGHT
 }
 
 data class ThemeColorPalette(
@@ -97,6 +102,86 @@ object ThemeManager {
                 textPrimary = Color(0xFFFFFFFF),
                 textSecondary = Color(0xFFE0F1F7),
                 textMuted = Color(0xFF5C7E9D)
+            )
+            NetOpsTheme.SOLARIZED_DARK -> ThemeColorPalette(
+                background = Color(0xFF002B36),
+                backgroundDark = Color(0xFF073642),
+                surface = Color(0xFF073642),
+                border = Color(0xFF586E75),
+                secondary = Color(0xFFB58900),
+                secondaryLight = Color(0xFFFDF6E3),
+                secondaryDim = Color(0xFF3D2E00),
+                primary = Color(0xFF2AA198),
+                primaryDim = Color(0xFF002222),
+                error = Color(0xFFDC322F),
+                errorDim = Color(0xFF441110),
+                textPrimary = Color(0xFF93A1A1),
+                textSecondary = Color(0xFF839496),
+                textMuted = Color(0xFF586E75)
+            )
+            NetOpsTheme.DRACULA -> ThemeColorPalette(
+                background = Color(0xFF282A36),
+                backgroundDark = Color(0xFF21222C),
+                surface = Color(0xFF343746),
+                border = Color(0xFF44475A),
+                secondary = Color(0xFFFF79C6),
+                secondaryLight = Color(0xFFF8F8F2),
+                secondaryDim = Color(0xFF4A1035),
+                primary = Color(0xFF50FA7B),
+                primaryDim = Color(0xFF0F3A18),
+                error = Color(0xFFFF5555),
+                errorDim = Color(0xFF4A1010),
+                textPrimary = Color(0xFFF8F8F2),
+                textSecondary = Color(0xFFBD93F9),
+                textMuted = Color(0xFF6272A4)
+            )
+            NetOpsTheme.MONOKAI_PRO -> ThemeColorPalette(
+                background = Color(0xFF2D2A2E),
+                backgroundDark = Color(0xFF221F22),
+                surface = Color(0xFF3A363B),
+                border = Color(0xFF49454C),
+                secondary = Color(0xFFFFD866),
+                secondaryLight = Color(0xFFFCFCFA),
+                secondaryDim = Color(0xFF4A3C10),
+                primary = Color(0xFFFC5C7D),
+                primaryDim = Color(0xFF4A1020),
+                error = Color(0xFFFF6188),
+                errorDim = Color(0xFF4A1020),
+                textPrimary = Color(0xFFFCFCFA),
+                textSecondary = Color(0xFFA9DC76),
+                textMuted = Color(0xFF726E75)
+            )
+            NetOpsTheme.RETRO_GOLD -> ThemeColorPalette(
+                background = Color(0xFF1E1E1E),
+                backgroundDark = Color(0xFF141414),
+                surface = Color(0xFF292929),
+                border = Color(0xFF3C3C3C),
+                secondary = Color(0xFFFFB300),
+                secondaryLight = Color(0xFFFFF8E1),
+                secondaryDim = Color(0xFF4A3200),
+                primary = Color(0xFFD4AF37),
+                primaryDim = Color(0xFF3D2E0A),
+                error = Color(0xFFCF6679),
+                errorDim = Color(0xFF4A101D),
+                textPrimary = Color(0xFFE0E0E0),
+                textSecondary = Color(0xFFB0BEC5),
+                textMuted = Color(0xFF78909C)
+            )
+            NetOpsTheme.CLASSIC_LIGHT -> ThemeColorPalette(
+                background = Color(0xFFF5F7FA),
+                backgroundDark = Color(0xFFECEFF1),
+                surface = Color(0xFFFFFFFF),
+                border = Color(0xFFCFD8DC),
+                secondary = Color(0xFF2E7D32),
+                secondaryLight = Color(0xFF1B5E20),
+                secondaryDim = Color(0xFFC8E6C9),
+                primary = Color(0xFF1565C0),
+                primaryDim = Color(0xFFBBDEFB),
+                error = Color(0xFFD32F2F),
+                errorDim = Color(0xFFFFCDD2),
+                textPrimary = Color(0xFF1E293B),
+                textSecondary = Color(0xFF475569),
+                textMuted = Color(0xFF94A3B8)
             )
         }
     }

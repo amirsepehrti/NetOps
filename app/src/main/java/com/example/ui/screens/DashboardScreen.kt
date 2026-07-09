@@ -60,6 +60,9 @@ fun DashboardScreen(
     val showDiagnosticStream by viewModel.showDiagnosticStream.collectAsState()
     val showDeviceInventory by viewModel.showDeviceInventory.collectAsState()
 
+    val homeLayoutStyle by viewModel.homeLayoutStyle.collectAsState()
+    val homeGreetingText by viewModel.homeGreetingText.collectAsState()
+
     // Sub-tool states
     val snifferPackets by viewModel.snifferPackets.collectAsState()
     val isSnifferRunning by viewModel.isSnifferRunning.collectAsState()
@@ -151,8 +154,38 @@ fun DashboardScreen(
             }
         }
 
+        // Hero / Greeting Custom Banner
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, ConsoleGreenDim, RoundedCornerShape(12.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "CONSOLE MONITOR",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Silver,
+                        fontFamily = FontFamily.Monospace,
+                        letterSpacing = 1.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = homeGreetingText.ifEmpty { "SYSTEM DIAGNOSTICS ACTIVE" },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = ConsoleGreen,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+
         // 1. Matrix Code Fall Interactive Header Canvas
-        if (showMatrixHeader) {
+        if (showMatrixHeader && homeLayoutStyle != "compact_focused") {
             item {
                 MatrixRainHeader()
             }
@@ -345,7 +378,7 @@ fun DashboardScreen(
         }
 
         // 3. REAL-TIME WI-FI TRAFFIC SNIFFER WIDGET
-        if (showTrafficSnifferWidget) {
+        if (showTrafficSnifferWidget && homeLayoutStyle != "compact_focused") {
             item {
                 Text(
                     text = "LIVE SNIFFER STREAM",
@@ -503,7 +536,7 @@ fun DashboardScreen(
         }
 
         // 4. FUTURISTIC CELL TOWER RADAR WIDGET
-        if (showCellRadarWidget) {
+        if (showCellRadarWidget && homeLayoutStyle != "compact_focused") {
             item {
                 Text(
                     text = "CELLULAR RADAR & BTS TELEMETRY",
@@ -661,78 +694,155 @@ fun DashboardScreen(
                     }
                 }
             } else {
-                items(devices.size) { index ->
-                    val device = devices[index]
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, CyberGray, RoundedCornerShape(12.dp))
-                            .clickable {
-                                viewModel.pingHost.value = device.ipAddress
-                                viewModel.selectTool(ActiveTool.PING)
-                                viewModel.selectTab(NetOpsTab.TOOLBOX)
-                            },
-                        colors = CardDefaults.cardColors(containerColor = CyberDark)
-                    ) {
+                if (homeLayoutStyle == "two_column") {
+                    val chunkedDevices = devices.chunked(2)
+                    items(chunkedDevices.size) { rowIndex ->
+                        val rowDevs = chunkedDevices[rowIndex]
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
+                            rowDevs.forEach { device ->
+                                Card(
                                     modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(CyberGray),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = when (device.deviceType) {
-                                            "Router" -> Icons.Default.Router
-                                            "Switch" -> Icons.Default.SettingsInputHdmi
-                                            "Server" -> Icons.Default.Dns
-                                            "VM" -> Icons.Default.Computer
-                                            else -> Icons.Default.DeveloperBoard
+                                        .weight(1f)
+                                        .border(1.dp, CyberGray, RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            viewModel.pingHost.value = device.ipAddress
+                                            viewModel.selectTool(ActiveTool.PING)
+                                            viewModel.selectTab(NetOpsTab.TOOLBOX)
                                         },
-                                        contentDescription = "Device Type",
-                                        tint = ConsoleGreen
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = device.name,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = OffWhite,
-                                        fontFamily = FontFamily.Monospace
-                                    )
-                                    Text(
-                                        text = "${device.vendor} • ${device.ipAddress}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Silver,
-                                        fontFamily = FontFamily.Monospace
-                                    )
+                                    colors = CardDefaults.cardColors(containerColor = CyberDark)
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(CyberGray),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = when (device.deviceType) {
+                                                        "Router" -> Icons.Default.Router
+                                                        "Switch" -> Icons.Default.SettingsInputHdmi
+                                                        "Server" -> Icons.Default.Dns
+                                                        "VM" -> Icons.Default.Computer
+                                                        else -> Icons.Default.DeveloperBoard
+                                                    },
+                                                    contentDescription = "Device Type",
+                                                    tint = ConsoleGreen,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column {
+                                                Text(
+                                                    text = device.name,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = OffWhite,
+                                                    fontFamily = FontFamily.Monospace,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = device.ipAddress,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = Silver,
+                                                    fontFamily = FontFamily.Monospace,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
-                            
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    "Quick Ping",
-                                    color = CyberCyan,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontFamily = FontFamily.Monospace,
-                                    modifier = Modifier.padding(end = 4.dp)
-                                )
-                                Icon(
-                                    imageVector = Icons.Default.ChevronRight,
-                                    contentDescription = "Ping device",
-                                    tint = Silver,
-                                    modifier = Modifier.size(16.dp)
-                                )
+                            if (rowDevs.size < 2) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                } else {
+                    items(devices.size) { index ->
+                        val device = devices[index]
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, CyberGray, RoundedCornerShape(12.dp))
+                                .clickable {
+                                    viewModel.pingHost.value = device.ipAddress
+                                    viewModel.selectTool(ActiveTool.PING)
+                                    viewModel.selectTab(NetOpsTab.TOOLBOX)
+                                },
+                            colors = CardDefaults.cardColors(containerColor = CyberDark)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(CyberGray),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = when (device.deviceType) {
+                                                "Router" -> Icons.Default.Router
+                                                "Switch" -> Icons.Default.SettingsInputHdmi
+                                                "Server" -> Icons.Default.Dns
+                                                "VM" -> Icons.Default.Computer
+                                                else -> Icons.Default.DeveloperBoard
+                                            },
+                                            contentDescription = "Device Type",
+                                            tint = ConsoleGreen
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = device.name,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = OffWhite,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                        Text(
+                                            text = "${device.vendor} • ${device.ipAddress}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Silver,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                    }
+                                }
+                                
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "Quick Ping",
+                                        color = CyberCyan,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        modifier = Modifier.padding(end = 4.dp)
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.ChevronRight,
+                                        contentDescription = "Ping device",
+                                        tint = Silver,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }

@@ -37,6 +37,11 @@ fun SettingsScreen(
 ) {
     val activeTheme by viewModel.activeTheme.collectAsState()
     val backgroundMonitoringEnabled by viewModel.backgroundMonitoringEnabled.collectAsState()
+    val bottomBarStyle by viewModel.bottomBarStyle.collectAsState()
+    val bottomBarLabelVisibility by viewModel.bottomBarLabelVisibility.collectAsState()
+    val bottomBarDensity by viewModel.bottomBarDensity.collectAsState()
+    val homeLayoutStyle by viewModel.homeLayoutStyle.collectAsState()
+    val homeGreetingText by viewModel.homeGreetingText.collectAsState()
     
     // Widget visibility states
     val showMatrixHeader by viewModel.showMatrixHeader.collectAsState()
@@ -117,48 +122,194 @@ fun SettingsScreen(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ThemePillButton(
-                            label = "Nord Slate",
-                            theme = NetOpsTheme.NORD_SLATE,
-                            activeTheme = activeTheme,
-                            primaryColor = Color(0xFF88C0D0),
-                            onClick = { viewModel.setTheme(NetOpsTheme.NORD_SLATE) },
-                            modifier = Modifier.weight(1f)
-                        )
-                        ThemePillButton(
-                            label = "Matrix Green",
-                            theme = NetOpsTheme.MATRIX_GREEN,
-                            activeTheme = activeTheme,
-                            primaryColor = Color(0xFF00FF41),
-                            onClick = { viewModel.setTheme(NetOpsTheme.MATRIX_GREEN) },
-                            modifier = Modifier.weight(1f)
-                        )
+                    val themesList = listOf(
+                        Triple("Nord Slate", NetOpsTheme.NORD_SLATE, Color(0xFF88C0D0)),
+                        Triple("Matrix Green", NetOpsTheme.MATRIX_GREEN, Color(0xFF00FF41)),
+                        Triple("Cyberpunk Neo", NetOpsTheme.CYBERPUNK_NEO, Color(0xFFFF007F)),
+                        Triple("Ocean Blue", NetOpsTheme.OCEAN_BLUE, Color(0xFF48CAE4)),
+                        Triple("Solarized Dark", NetOpsTheme.SOLARIZED_DARK, Color(0xFF2AA198)),
+                        Triple("Dracula", NetOpsTheme.DRACULA, Color(0xFF50FA7B)),
+                        Triple("Monokai Pro", NetOpsTheme.MONOKAI_PRO, Color(0xFFFC5C7D)),
+                        Triple("Retro Gold", NetOpsTheme.RETRO_GOLD, Color(0xFFD4AF37)),
+                        Triple("Classic Light ☀️", NetOpsTheme.CLASSIC_LIGHT, Color(0xFF1565C0))
+                    )
+
+                    themesList.chunked(2).forEach { rowThemes ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowThemes.forEach { (label, themeVal, colorVal) ->
+                                ThemePillButton(
+                                    label = label,
+                                    theme = themeVal,
+                                    activeTheme = activeTheme,
+                                    primaryColor = colorVal,
+                                    onClick = { viewModel.setTheme(themeVal) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (rowThemes.size < 2) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
+                }
+            }
+        }
+
+        // 1b. DOCK CUSTOMIZATION CARD
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, CyberGray, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "BOTTOM DOCK STYLING",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = CyberCyan,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text("Dock Visual Style", style = MaterialTheme.typography.bodySmall, color = Silver)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(
+                            "match_theme" to "Default",
+                            "glassmorphism" to "Glassy Glow",
+                            "cyber_border" to "Neon Accent"
+                        ).forEach { (styleKey, styleLabel) ->
+                            val isSel = bottomBarStyle == styleKey
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) CyberCyan.copy(alpha = 0.2f) else CyberGray)
+                                    .border(1.dp, if (isSel) CyberCyan else Color.Transparent, RoundedCornerShape(8.dp))
+                                    .clickable { viewModel.setBottomBarStyle(styleKey) }
+                                    .padding(8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(styleLabel, style = MaterialTheme.typography.labelSmall, color = if (isSel) CyberCyan else OffWhite)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text("Dock Tab Labels", style = MaterialTheme.typography.bodySmall, color = Silver)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(
+                            "always" to "Always Show",
+                            "selected_only" to "Active Only",
+                            "hidden" to "Icons Only"
+                        ).forEach { (visKey, visLabel) ->
+                            val isSel = bottomBarLabelVisibility == visKey
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) ConsoleGreen.copy(alpha = 0.2f) else CyberGray)
+                                    .border(1.dp, if (isSel) ConsoleGreen else Color.Transparent, RoundedCornerShape(8.dp))
+                                    .clickable { viewModel.setBottomBarLabelVisibility(visKey) }
+                                    .padding(8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(visLabel, style = MaterialTheme.typography.labelSmall, color = if (isSel) ConsoleGreen else OffWhite)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text("Dock Size Density", style = MaterialTheme.typography.bodySmall, color = Silver)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(
+                            "compact" to "Compact",
+                            "normal" to "Standard",
+                            "spacious" to "Comfort"
+                        ).forEach { (densityKey, densityLabel) ->
+                            val isSel = bottomBarDensity == densityKey
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) CyberCyan.copy(alpha = 0.2f) else CyberGray)
+                                    .border(1.dp, if (isSel) CyberCyan else Color.Transparent, RoundedCornerShape(8.dp))
+                                    .clickable { viewModel.setBottomBarDensity(densityKey) }
+                                    .padding(8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(densityLabel, style = MaterialTheme.typography.labelSmall, color = if (isSel) CyberCyan else OffWhite)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 1c. HOME CUSTOMIZATION CARD
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, CyberGray, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "HOME SCREEN DECORATOR",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = ConsoleGreen,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text("Header Banner Text", style = MaterialTheme.typography.bodySmall, color = Silver)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = homeGreetingText,
+                        onValueChange = { viewModel.setHomeGreetingText(it) },
+                        textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ThemePillButton(
-                            label = "Cyberpunk Neo",
-                            theme = NetOpsTheme.CYBERPUNK_NEO,
-                            activeTheme = activeTheme,
-                            primaryColor = Color(0xFFFF007F),
-                            onClick = { viewModel.setTheme(NetOpsTheme.CYBERPUNK_NEO) },
-                            modifier = Modifier.weight(1f)
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = ConsoleGreen,
+                            unfocusedBorderColor = CyberGray
                         )
-                        ThemePillButton(
-                            label = "Ocean Blue",
-                            theme = NetOpsTheme.OCEAN_BLUE,
-                            activeTheme = activeTheme,
-                            primaryColor = Color(0xFF48CAE4),
-                            onClick = { viewModel.setTheme(NetOpsTheme.OCEAN_BLUE) },
-                            modifier = Modifier.weight(1f)
-                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text("Grid Template Layout", style = MaterialTheme.typography.bodySmall, color = Silver)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(
+                            "single_column" to "Single List",
+                            "two_column" to "Grid Cards",
+                            "compact_focused" to "Focused HUD"
+                        ).forEach { (layoutKey, layoutLabel) ->
+                            val isSel = homeLayoutStyle == layoutKey
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) ConsoleGreen.copy(alpha = 0.2f) else CyberGray)
+                                    .border(1.dp, if (isSel) ConsoleGreen else Color.Transparent, RoundedCornerShape(8.dp))
+                                    .clickable { viewModel.setHomeLayoutStyle(layoutKey) }
+                                    .padding(8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(layoutLabel, style = MaterialTheme.typography.labelSmall, color = if (isSel) ConsoleGreen else OffWhite)
+                            }
+                        }
                     }
                 }
             }
