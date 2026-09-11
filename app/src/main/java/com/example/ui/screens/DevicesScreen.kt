@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.Device
@@ -112,26 +113,34 @@ fun DevicesScreen(
                     Card(
                         modifier = Modifier
                             .width(180.dp)
+                            .height(78.dp)
                             .border(1.dp, if (isSelected) ConsoleGreen else CyberGray, RoundedCornerShape(12.dp))
                             .clickable { viewModel.selectSite(site.id) },
                         colors = CardDefaults.cardColors(containerColor = if (isSelected) CyberDark else CyberBlack)
                     ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.Center
+                        ) {
                             Text(
                                 text = site.name,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isSelected) ConsoleGreen else OffWhite,
                                 maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 fontFamily = FontFamily.Monospace
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Gateway: ${site.gatewayIp}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Silver,
                                 fontFamily = FontFamily.Monospace,
-                                maxLines = 1
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -195,6 +204,8 @@ fun DevicesScreen(
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
+                        TactileDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text("Subnet Prefix: /${site.subnetMask}", style = MaterialTheme.typography.bodySmall, color = OffWhite, fontFamily = FontFamily.Monospace)
                         Text("VPN Connect ID: ${site.vpnConfig.ifEmpty { "None mapped" }}", style = MaterialTheme.typography.bodySmall, color = OffWhite, fontFamily = FontFamily.Monospace)
                         if (site.notes.isNotEmpty()) {
@@ -268,6 +279,7 @@ fun DevicesScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .heightIn(min = 76.dp)
                         .border(1.dp, CyberGray, RoundedCornerShape(12.dp)),
                     colors = CardDefaults.cardColors(containerColor = CyberDark)
                 ) {
@@ -278,10 +290,13 @@ fun DevicesScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(42.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(CyberGray),
                                 contentAlignment = Alignment.Center
@@ -299,14 +314,47 @@ fun DevicesScreen(
                                 )
                             }
                             Spacer(modifier = Modifier.width(14.dp))
-                            Column {
-                                Text(dev.name, fontWeight = FontWeight.Bold, color = OffWhite, fontFamily = FontFamily.Monospace)
-                                Text("${dev.vendor} • IP: ${dev.ipAddress}", style = MaterialTheme.typography.bodySmall, color = Silver, fontFamily = FontFamily.Monospace)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(
+                                        text = dev.name,
+                                        fontWeight = FontWeight.Bold,
+                                        color = OffWhite,
+                                        fontFamily = FontFamily.Monospace,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(ConsoleGreen.copy(alpha = 0.15f))
+                                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(dev.deviceType, color = ConsoleGreen, fontSize = 8.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "${dev.vendor} • IP: ${dev.ipAddress}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Silver,
+                                    fontFamily = FontFamily.Monospace,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                                 if (dev.notes.isNotEmpty()) {
-                                    Text(dev.notes, style = MaterialTheme.typography.labelSmall, color = DarkSilver)
+                                    Text(
+                                        text = dev.notes,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = DarkSilver,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.width(8.dp))
 
                         IconButton(
                             onClick = { viewModel.deleteDevice(dev.id) },

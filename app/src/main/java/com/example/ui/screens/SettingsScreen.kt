@@ -8,10 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,8 +23,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.NetOpsViewModel
+import com.example.ui.ToastType
 import com.example.ui.theme.NetOpsTheme
 import com.example.ui.theme.*
+import com.example.ui.dialogs.OperatorProfileDialog
+import com.example.ui.dialogs.BackupRestoreDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,12 +36,26 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val activeTheme by viewModel.activeTheme.collectAsState()
+    val fontScale by viewModel.fontScale.collectAsState()
+    val fontFamilyOption by viewModel.fontFamilyOption.collectAsState()
+    val hasPermissions by viewModel.hasPermissions.collectAsState()
+
     val backgroundMonitoringEnabled by viewModel.backgroundMonitoringEnabled.collectAsState()
+    val navBarPosition by viewModel.navBarPosition.collectAsState()
     val bottomBarStyle by viewModel.bottomBarStyle.collectAsState()
     val bottomBarLabelVisibility by viewModel.bottomBarLabelVisibility.collectAsState()
     val bottomBarDensity by viewModel.bottomBarDensity.collectAsState()
     val homeLayoutStyle by viewModel.homeLayoutStyle.collectAsState()
     val homeGreetingText by viewModel.homeGreetingText.collectAsState()
+
+    val operatorName by viewModel.operatorName.collectAsState()
+    val operatorCallsign by viewModel.operatorCallsign.collectAsState()
+    val operatorRole by viewModel.operatorRole.collectAsState()
+    val operatorClearance by viewModel.operatorClearance.collectAsState()
+    val operatorUnit by viewModel.operatorUnit.collectAsState()
+
+    var showProfileDialog by remember { mutableStateOf(false) }
+    var showBackupDialog by remember { mutableStateOf(false) }
     
     // Widget visibility states
     val showMatrixHeader by viewModel.showMatrixHeader.collectAsState()
@@ -123,14 +137,17 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     val themesList = listOf(
-                        Triple("Nord Slate", NetOpsTheme.NORD_SLATE, Color(0xFF88C0D0)),
-                        Triple("Matrix Green", NetOpsTheme.MATRIX_GREEN, Color(0xFF00FF41)),
-                        Triple("Cyberpunk Neo", NetOpsTheme.CYBERPUNK_NEO, Color(0xFFFF007F)),
-                        Triple("Ocean Blue", NetOpsTheme.OCEAN_BLUE, Color(0xFF48CAE4)),
-                        Triple("Solarized Dark", NetOpsTheme.SOLARIZED_DARK, Color(0xFF2AA198)),
-                        Triple("Dracula", NetOpsTheme.DRACULA, Color(0xFF50FA7B)),
-                        Triple("Monokai Pro", NetOpsTheme.MONOKAI_PRO, Color(0xFFFC5C7D)),
-                        Triple("Retro Gold", NetOpsTheme.RETRO_GOLD, Color(0xFFD4AF37)),
+                        Triple("Console Rack 🎛️", NetOpsTheme.SKEUOMORPHIC_CONSOLE, Color(0xFF22C55E)),
+                        Triple("Aluminum ⚙️", NetOpsTheme.SKEUOMORPHIC_ALUMINUM, Color(0xFFF59E0B)),
+                        Triple("Obsidian 🖤", NetOpsTheme.OBSIDIAN_STEALTH, Color(0xFFFB923C)),
+                        Triple("Nord Slate ❄️", NetOpsTheme.NORD_SLATE, Color(0xFF88C0D0)),
+                        Triple("Matrix Green 🟢", NetOpsTheme.MATRIX_GREEN, Color(0xFF00FF41)),
+                        Triple("Cyberpunk Neo ⚡", NetOpsTheme.CYBERPUNK_NEO, Color(0xFFFF007F)),
+                        Triple("Ocean Blue 🌊", NetOpsTheme.OCEAN_BLUE, Color(0xFF48CAE4)),
+                        Triple("Solarized Dark 🪐", NetOpsTheme.SOLARIZED_DARK, Color(0xFF2AA198)),
+                        Triple("Dracula 🧛", NetOpsTheme.DRACULA, Color(0xFF50FA7B)),
+                        Triple("Monokai Pro 🎨", NetOpsTheme.MONOKAI_PRO, Color(0xFFFC5C7D)),
+                        Triple("Retro Gold 👑", NetOpsTheme.RETRO_GOLD, Color(0xFFD4AF37)),
                         Triple("Classic Light ☀️", NetOpsTheme.CLASSIC_LIGHT, Color(0xFF1565C0))
                     )
 
@@ -158,7 +175,135 @@ fun SettingsScreen(
             }
         }
 
-        // 1b. DOCK CUSTOMIZATION CARD
+        // 1b. TYPOGRAPHY & FONT SCALING CARD
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, CyberCyanDim, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.TextFields, contentDescription = "Font", tint = CyberCyan, modifier = Modifier.size(20.dp))
+                        Text(
+                            text = "FONT SCALE & TYPOGRAPHY",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = CyberCyan,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text("Interface Font Size Scaling", style = MaterialTheme.typography.bodySmall, color = Silver)
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(
+                            0.85f to "Compact (0.85x)",
+                            1.0f to "Standard (1.0x)",
+                            1.15f to "Large (1.15x)",
+                            1.30f to "Huge (1.30x)"
+                        ).forEach { (scale, label) ->
+                            val isSel = kotlin.math.abs(fontScale - scale) < 0.05f
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) CyberCyan.copy(alpha = 0.2f) else CyberGray)
+                                    .border(1.dp, if (isSel) CyberCyan else Color.Transparent, RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        viewModel.setFontScale(scale)
+                                        viewModel.showToast("Font scaled to ${(scale * 100).toInt()}%", ToastType.INFO)
+                                    }
+                                    .padding(vertical = 10.dp, horizontal = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isSel) CyberCyan else OffWhite,
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text("Font Family Aesthetic", style = MaterialTheme.typography.bodySmall, color = Silver)
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(
+                            "monospace" to "Monospace (Cyber)",
+                            "sans_serif" to "Sans-Serif (Modern)",
+                            "serif" to "Serif (Classic)"
+                        ).forEach { (fontKey, fontLabel) ->
+                            val isSel = fontFamilyOption == fontKey
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) ConsoleGreen.copy(alpha = 0.2f) else CyberGray)
+                                    .border(1.dp, if (isSel) ConsoleGreen else Color.Transparent, RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        viewModel.setFontFamilyOption(fontKey)
+                                        viewModel.showToast("Font family set to $fontLabel", ToastType.INFO)
+                                    }
+                                    .padding(vertical = 10.dp, horizontal = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = fontLabel,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isSel) ConsoleGreen else OffWhite,
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Live Typography Preview
+                    Card(
+                        modifier = Modifier.fillMaxWidth().border(1.dp, CyberSlate, RoundedCornerShape(8.dp)),
+                        colors = CardDefaults.cardColors(containerColor = CyberBlack)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text(
+                                text = "LIVE PREVIEW TEXT",
+                                fontSize = 10.sp,
+                                color = DarkSilver,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "NetOps: 192.168.1.1 [RTT: 12ms] WiFi: 5GHz CH36",
+                                color = ConsoleGreen,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 1c. NOTIFICATIONS, TOAST & POPUP FEEDBACK CARD
         item {
             Card(
                 modifier = Modifier
@@ -167,14 +312,154 @@ fun SettingsScreen(
                 colors = CardDefaults.cardColors(containerColor = CyberDark)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.NotificationsActive, contentDescription = "Feedback", tint = ConsoleGreen, modifier = Modifier.size(20.dp))
+                        Text(
+                            text = "TOAST & POPUP FEEDBACK SYSTEM",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = ConsoleGreen,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "BOTTOM DOCK STYLING",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = CyberCyan,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
+                        text = "Instant in-app HUD toasts and modal popups for network alerts and confirmations.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Silver
                     )
+
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { viewModel.showToast("Packets successfully captured & analyzed!", ToastType.SUCCESS) },
+                            colors = ButtonDefaults.buttonColors(containerColor = ConsoleGreen.copy(alpha = 0.2f), contentColor = ConsoleGreen),
+                            border = BorderStroke(1.dp, ConsoleGreen),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("SUCCESS TOAST", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+
+                        Button(
+                            onClick = { viewModel.showToast("Wi-Fi frequency congestion detected on CH 6", ToastType.WARNING) },
+                            colors = ButtonDefaults.buttonColors(containerColor = Amber.copy(alpha = 0.2f), contentColor = Amber),
+                            border = BorderStroke(1.dp, Amber),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("WARN TOAST", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { viewModel.showToast("Connection to gateway timed out after 3000ms", ToastType.ERROR) },
+                            colors = ButtonDefaults.buttonColors(containerColor = CyberCrimson.copy(alpha = 0.2f), contentColor = CyberCrimson),
+                            border = BorderStroke(1.dp, CyberCrimson),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("ERROR TOAST", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.showPopup(
+                                    title = "DIAGNOSTIC NOTICE",
+                                    message = "All telemetry sensors and raw hardware sockets are operating natively with zero simulated data.",
+                                    type = ToastType.INFO,
+                                    confirmText = "ACKNOWLEDGE"
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = CyberCyan.copy(alpha = 0.2f), contentColor = CyberCyan),
+                            border = BorderStroke(1.dp, CyberCyan),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("TEST POPUP", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 1d. DOCK CUSTOMIZATION CARD
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, CyberGray, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "NAVIGATION DOCK & PLACEMENT",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = CyberCyan,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(CyberCyan.copy(alpha = 0.15f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(navBarPosition, color = CyberCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text("Dock Placement Position", style = MaterialTheme.typography.bodySmall, color = Silver)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(
+                            "BOTTOM" to "Dock at Bottom ⬇️",
+                            "TOP" to "Dock at Top ⬆️"
+                        ).forEach { (posKey, posLabel) ->
+                            val isSel = navBarPosition == posKey
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(42.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) CyberCyan.copy(alpha = 0.2f) else CyberGray)
+                                    .border(1.dp, if (isSel) CyberCyan else Color.Transparent, RoundedCornerShape(8.dp))
+                                    .clickable { viewModel.setNavBarPosition(posKey) }
+                                    .padding(horizontal = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    posLabel,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isSel) CyberCyan else OffWhite,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     Text("Dock Visual Style", style = MaterialTheme.typography.bodySmall, color = Silver)
                     Spacer(modifier = Modifier.height(4.dp))
@@ -188,11 +473,12 @@ fun SettingsScreen(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(38.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(if (isSel) CyberCyan.copy(alpha = 0.2f) else CyberGray)
                                     .border(1.dp, if (isSel) CyberCyan else Color.Transparent, RoundedCornerShape(8.dp))
                                     .clickable { viewModel.setBottomBarStyle(styleKey) }
-                                    .padding(8.dp),
+                                    .padding(horizontal = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(styleLabel, style = MaterialTheme.typography.labelSmall, color = if (isSel) CyberCyan else OffWhite)
@@ -214,11 +500,12 @@ fun SettingsScreen(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(38.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(if (isSel) ConsoleGreen.copy(alpha = 0.2f) else CyberGray)
                                     .border(1.dp, if (isSel) ConsoleGreen else Color.Transparent, RoundedCornerShape(8.dp))
                                     .clickable { viewModel.setBottomBarLabelVisibility(visKey) }
-                                    .padding(8.dp),
+                                    .padding(horizontal = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(visLabel, style = MaterialTheme.typography.labelSmall, color = if (isSel) ConsoleGreen else OffWhite)
@@ -232,25 +519,158 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf(
-                            "compact" to "Compact",
-                            "normal" to "Standard",
-                            "spacious" to "Comfort"
+                            "compact" to "Compact (48dp)",
+                            "normal" to "Standard (58dp)",
+                            "spacious" to "Comfort (72dp)"
                         ).forEach { (densityKey, densityLabel) ->
                             val isSel = bottomBarDensity == densityKey
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(38.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(if (isSel) CyberCyan.copy(alpha = 0.2f) else CyberGray)
                                     .border(1.dp, if (isSel) CyberCyan else Color.Transparent, RoundedCornerShape(8.dp))
                                     .clickable { viewModel.setBottomBarDensity(densityKey) }
-                                    .padding(8.dp),
+                                    .padding(horizontal = 2.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(densityLabel, style = MaterialTheme.typography.labelSmall, color = if (isSel) CyberCyan else OffWhite)
+                                Text(densityLabel, style = MaterialTheme.typography.labelSmall, color = if (isSel) CyberCyan else OffWhite, fontSize = 9.sp, textAlign = TextAlign.Center)
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // 1e. OPERATOR PROFILE & CLEARANCE SETTINGS
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, ConsoleGreenDim, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.Badge, contentDescription = "Badge", tint = ConsoleGreen, modifier = Modifier.size(20.dp))
+                            Text(
+                                text = "OPERATOR PROFILE",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = ConsoleGreen,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+
+                        Button(
+                            onClick = { showProfileDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = ConsoleGreenDim, contentColor = ConsoleGreen),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("EDIT PROFILE", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(CyberBlack)
+                                .border(1.dp, ConsoleGreen, RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Security, contentDescription = null, tint = ConsoleGreen, modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "$operatorName ($operatorCallsign)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = OffWhite,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Text(
+                                text = "$operatorRole • $operatorUnit",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Silver,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "Clearance: $operatorClearance",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ConsoleGreen,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 1f. BACKUP, RESTORE & SYSTEM MIGRATION
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, CyberCyanDim, RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = CyberDark)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.Backup, contentDescription = "Backup", tint = CyberCyan, modifier = Modifier.size(20.dp))
+                            Text(
+                                text = "BACKUP & RESTORE",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = CyberCyan,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+
+                        Button(
+                            onClick = { showBackupDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = CyberCyanDim, contentColor = CyberCyan),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("OPEN MANAGER", fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Export and restore your customized dashboard widgets, theme, font scaling, navigation dock position, and operator identity profiles via JSON.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Silver
+                    )
                 }
             }
         }
@@ -498,6 +918,20 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    if (showProfileDialog) {
+        OperatorProfileDialog(
+            viewModel = viewModel,
+            onDismiss = { showProfileDialog = false }
+        )
+    }
+
+    if (showBackupDialog) {
+        BackupRestoreDialog(
+            viewModel = viewModel,
+            onDismiss = { showBackupDialog = false }
+        )
     }
 }
 

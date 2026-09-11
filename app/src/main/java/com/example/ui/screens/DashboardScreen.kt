@@ -154,7 +154,7 @@ fun DashboardScreen(
             }
         }
 
-        // Hero / Greeting Custom Banner
+        // Hero / Greeting Custom Banner with Quick Customize Action
         item {
             Card(
                 modifier = Modifier
@@ -162,24 +162,49 @@ fun DashboardScreen(
                     .border(1.dp, ConsoleGreenDim, RoundedCornerShape(12.dp)),
                 colors = CardDefaults.cardColors(containerColor = CyberDark)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "CONSOLE MONITOR",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Silver,
-                        fontFamily = FontFamily.Monospace,
-                        letterSpacing = 1.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = homeGreetingText.ifEmpty { "SYSTEM DIAGNOSTICS ACTIVE" },
-                        style = MaterialTheme.typography.titleMedium,
-                        color = ConsoleGreen,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "CONSOLE MONITOR",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Silver,
+                            fontFamily = FontFamily.Monospace,
+                            letterSpacing = 1.5.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = homeGreetingText.ifEmpty { "SYSTEM DIAGNOSTICS ACTIVE" },
+                            style = MaterialTheme.typography.titleMedium,
+                            color = ConsoleGreen,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Button(
+                        onClick = { viewModel.setCustomizeDashboardOpen(true) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ConsoleGreen.copy(alpha = 0.15f),
+                            contentColor = ConsoleGreen
+                        ),
+                        border = BorderStroke(1.dp, ConsoleGreen),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Tune, contentDescription = "Customize Dashboard", modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("CUSTOMIZE", fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    }
                 }
             }
         }
@@ -909,7 +934,7 @@ fun ThemePillButton(
                     .background(primaryColor)
             )
             Spacer(modifier = Modifier.width(6.dp))
-            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

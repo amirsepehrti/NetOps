@@ -5,9 +5,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 
 @Composable
 fun MyApplicationTheme(
+  fontFamily: FontFamily = FontFamily.Monospace,
   darkTheme: Boolean = isSystemInDarkTheme(),
   dynamicColor: Boolean = false,
   content: @Composable () -> Unit,
@@ -34,7 +36,7 @@ fun MyApplicationTheme(
 
   MaterialTheme(
     colorScheme = colorScheme,
-    typography = Typography,
+    typography = getTypography(fontFamily),
     content = content
   )
 }

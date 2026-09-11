@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.ui.ActiveTool
 import com.example.ui.NetOpsViewModel
 import com.example.ui.CellTowerInfo
@@ -3484,26 +3485,135 @@ fun WifiDiagnosticsToolView(viewModel: NetOpsViewModel) {
                     Spacer(modifier = Modifier.height(14.dp))
 
                     if (scanResults.isEmpty()) {
-                        Text("No scanned networks. Press SWEEP to discover airwaves...", color = DarkSilver, fontSize = 11.sp, fontFamily = FontFamily.Monospace, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp))
+                        Text(
+                            text = "No scanned networks. Press RUN AP SWEEP to discover airwaves...",
+                            color = DarkSilver,
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+                        )
                     } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             scanResults.forEach { result ->
-                                Row(
+                                val cleanSecurity = when {
+                                    result.security.contains("WPA3", ignoreCase = true) -> "WPA3"
+                                    result.security.contains("WPA2", ignoreCase = true) -> "WPA2"
+                                    result.security.contains("WPA", ignoreCase = true) -> "WPA"
+                                    result.security.contains("WEP", ignoreCase = true) -> "WEP"
+                                    result.security.contains("PSK", ignoreCase = true) -> "WPA-PSK"
+                                    else -> "OPEN"
+                                }
+                                val signalColor = when {
+                                    result.rssi > -60 -> ConsoleGreen
+                                    result.rssi > -70 -> CyberCyan
+                                    result.rssi > -80 -> Amber
+                                    else -> CyberCrimson
+                                }
+
+                                Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(CyberBlack, RoundedCornerShape(8.dp))
-                                        .padding(10.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .border(1.dp, CyberGray, RoundedCornerShape(10.dp)),
+                                    colors = CardDefaults.cardColors(containerColor = CyberBlack)
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(result.ssid, fontSize = 12.sp, color = OffWhite, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                        Text("${result.bssid} • CH ${result.channel} • ${result.standard}", fontSize = 10.sp, color = Silver, fontFamily = FontFamily.Monospace)
-                                    }
-                                    
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text("${result.rssi} dBm", fontSize = 11.sp, color = if (result.rssi > -65) ConsoleGreen else CyberCyan, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                        Text(result.security, fontSize = 9.sp, color = DarkSilver, fontFamily = FontFamily.Monospace)
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.weight(1f),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Wifi,
+                                                    contentDescription = null,
+                                                    tint = signalColor,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Text(
+                                                    text = result.ssid,
+                                                    fontSize = 14.sp,
+                                                    color = OffWhite,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontFamily = FontFamily.Monospace,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+
+                                            Spacer(modifier = Modifier.width(8.dp))
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(signalColor.copy(alpha = 0.15f))
+                                                    .border(1.dp, signalColor.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                                            ) {
+                                                Text(
+                                                    text = "${result.rssi} dBm",
+                                                    fontSize = 12.sp,
+                                                    color = signalColor,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontFamily = FontFamily.Monospace
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "${result.bssid} • ${result.vendor}",
+                                                fontSize = 11.sp,
+                                                color = Silver,
+                                                fontFamily = FontFamily.Monospace,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f)
+                                            )
+
+                                            Spacer(modifier = Modifier.width(8.dp))
+
+                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .background(CyberSlate)
+                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "CH ${result.channel} (${result.standard})",
+                                                        fontSize = 10.sp,
+                                                        color = Silver,
+                                                        fontFamily = FontFamily.Monospace
+                                                    )
+                                                }
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .background(if (cleanSecurity == "OPEN") Amber.copy(alpha = 0.2f) else CyberCyan.copy(alpha = 0.2f))
+                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = cleanSecurity,
+                                                        fontSize = 10.sp,
+                                                        color = if (cleanSecurity == "OPEN") Amber else CyberCyan,
+                                                        fontFamily = FontFamily.Monospace,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -3630,14 +3740,19 @@ fun WifiMetricCell(label: String, value: String, subLabel: String, modifier: Mod
     Card(
         modifier = modifier
             .padding(4.dp)
+            .heightIn(min = 78.dp)
             .border(1.dp, CyberGray, RoundedCornerShape(8.dp)),
         colors = CardDefaults.cardColors(containerColor = CyberBlack)
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            Text(label, fontSize = 8.sp, color = Silver, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+        Column(
+            modifier = Modifier.padding(10.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(label, fontSize = 10.sp, color = Silver, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(value, fontSize = 13.sp, color = ConsoleGreen, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(value, fontSize = 12.sp, color = ConsoleGreen, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black)
-            Text(subLabel, fontSize = 8.sp, color = DarkSilver, fontFamily = FontFamily.Monospace)
+            Text(subLabel, fontSize = 9.sp, color = DarkSilver, fontFamily = FontFamily.Monospace, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -3808,43 +3923,140 @@ fun CellDiagnosticsToolView(viewModel: NetOpsViewModel) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
+                    // 1. Centered Animated Radar Scope
+                    Box(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        contentAlignment = Alignment.Center
                     ) {
-                        CellRadarScopeView(cellTowers)
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
                         Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("DISCOVERED CARRIER BTS NODES:", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = ConsoleGreen, fontFamily = FontFamily.Monospace)
+                            CellRadarScopeView(cellTowers)
                             
-                            if (cellTowers.isEmpty()) {
-                                Text("No discovered sectors. Execute SWEEP scanner...", color = DarkSilver, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
-                            } else {
-                                cellTowers.forEach { tower ->
-                                    Row(
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(modifier = Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(ConsoleGreen))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Serving BTS", fontSize = 10.sp, color = Silver, fontFamily = FontFamily.Monospace)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(modifier = Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(CyberCyan))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Neighbor Cell", fontSize = 10.sp, color = Silver, fontFamily = FontFamily.Monospace)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // 2. Full-Width Discovered BTS Sectors List
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "DISCOVERED CARRIER BTS NODES (${cellTowers.size}):",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ConsoleGreen,
+                            fontFamily = FontFamily.Monospace
+                        )
+
+                        if (cellTowers.isEmpty()) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth().border(1.dp, CyberSlate, RoundedCornerShape(8.dp)),
+                                colors = CardDefaults.cardColors(containerColor = CyberBlack)
+                            ) {
+                                Text(
+                                    text = "No surrounding sectors detected. Execute SWEEP CELL TOWER to acquire signals...",
+                                    color = DarkSilver,
+                                    fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    modifier = Modifier.padding(14.dp)
+                                )
+                            }
+                        } else {
+                            cellTowers.forEach { tower ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (tower.isServing) ConsoleGreen.copy(alpha = 0.5f) else CyberSlate,
+                                            shape = RoundedCornerShape(8.dp)
+                                        ),
+                                    colors = CardDefaults.cardColors(containerColor = CyberBlack)
+                                ) {
+                                    Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .background(CyberBlack, RoundedCornerShape(4.dp))
-                                            .padding(6.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                            .padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Column {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Box(modifier = Modifier.size(4.dp).clip(RoundedCornerShape(2.dp)).background(if (tower.isServing) ConsoleGreen else CyberCyan))
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text(tower.towerId, fontSize = 9.sp, color = OffWhite, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .background(if (tower.isServing) ConsoleGreen.copy(alpha = 0.2f) else CyberCyan.copy(alpha = 0.15f))
+                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = if (tower.isServing) "SERVING" else "NEIGHBOR",
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (tower.isServing) ConsoleGreen else CyberCyan,
+                                                        fontFamily = FontFamily.Monospace
+                                                    )
+                                                }
+                                                Text(
+                                                    text = tower.towerId,
+                                                    fontSize = 13.sp,
+                                                    color = OffWhite,
+                                                    fontFamily = FontFamily.Monospace,
+                                                    fontWeight = FontWeight.Bold
+                                                )
                                             }
-                                            Text("${tower.operator} • ${tower.cellType}", fontSize = 8.sp, color = Silver, fontFamily = FontFamily.Monospace)
+
+                                            Text(
+                                                text = "${tower.rsrp} dBm",
+                                                fontSize = 13.sp,
+                                                color = if (tower.isServing) ConsoleGreen else CyberCyan,
+                                                fontWeight = FontWeight.Black,
+                                                fontFamily = FontFamily.Monospace
+                                            )
                                         }
-                                        Column(horizontalAlignment = Alignment.End) {
-                                            Text("${tower.rsrp} dBm", fontSize = 9.sp, color = if (tower.isServing) ConsoleGreen else OffWhite, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                                            Text("${tower.distanceMeters} meters", fontSize = 8.sp, color = DarkSilver, fontFamily = FontFamily.Monospace)
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "${tower.operator} • ${tower.cellType} • ${tower.bearing.toInt()}° Azimuth",
+                                                fontSize = 11.sp,
+                                                color = Silver,
+                                                fontFamily = FontFamily.Monospace
+                                            )
+
+                                            Text(
+                                                text = "est. ${tower.distanceMeters}m",
+                                                fontSize = 11.sp,
+                                                color = DarkSilver,
+                                                fontFamily = FontFamily.Monospace
+                                            )
                                         }
                                     }
                                 }

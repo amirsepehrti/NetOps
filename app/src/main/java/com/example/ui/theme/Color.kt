@@ -1,8 +1,23 @@
 package com.example.ui.theme
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 enum class NetOpsTheme {
+    SKEUOMORPHIC_CONSOLE,
+    SKEUOMORPHIC_ALUMINUM,
     NORD_SLATE,
     MATRIX_GREEN,
     CYBERPUNK_NEO,
@@ -11,6 +26,7 @@ enum class NetOpsTheme {
     DRACULA,
     MONOKAI_PRO,
     RETRO_GOLD,
+    OBSIDIAN_STEALTH,
     CLASSIC_LIGHT
 }
 
@@ -32,13 +48,61 @@ data class ThemeColorPalette(
 )
 
 object ThemeManager {
-    var currentTheme: NetOpsTheme = NetOpsTheme.NORD_SLATE
+    var currentTheme: NetOpsTheme = NetOpsTheme.SKEUOMORPHIC_CONSOLE
 
     val colors: ThemeColorPalette
         get() = getPalette(currentTheme)
 
     fun getPalette(theme: NetOpsTheme): ThemeColorPalette {
         return when (theme) {
+            NetOpsTheme.SKEUOMORPHIC_CONSOLE -> ThemeColorPalette(
+                background = Color(0xFF13171C),       // Heavy equipment matte chassis
+                backgroundDark = Color(0xFF0B0E11),   // Recessed instrument bay
+                surface = Color(0xFF1C222A),          // Brushed rack faceplate
+                border = Color(0xFF333E4C),           // Machined chamfered bezel
+                secondary = Color(0xFF22C55E),        // Phosphor green LED indicator
+                secondaryLight = Color(0xFFDCFCE7),   // Bright phosphor glow
+                secondaryDim = Color(0xFF14381C),     // Deep LED diode housing
+                primary = Color(0xFF38BDF8),          // Analog telemetry gauge cyan
+                primaryDim = Color(0xFF0C2B3B),       // Gauge shadow bezel
+                error = Color(0xFFEF4444),            // Warning beacon red
+                errorDim = Color(0xFF3C1212),         // Dark red diode housing
+                textPrimary = Color(0xFFF8FAFC),      // High-contrast engraved lettering
+                textSecondary = Color(0xFFCBD5E1),    // Secondary dial legend
+                textMuted = Color(0xFF64748B)         // Recessed chassis markings
+            )
+            NetOpsTheme.SKEUOMORPHIC_ALUMINUM -> ThemeColorPalette(
+                background = Color(0xFF24272D),       // Dark anodized aluminum body
+                backgroundDark = Color(0xFF1B1D22),   // Cast metal base
+                surface = Color(0xFF2F343E),          // Brushed silver alloy panel
+                border = Color(0xFF4A5260),           // Polished metal edge
+                secondary = Color(0xFFF59E0B),        // Industrial amber incandescent lamp
+                secondaryLight = Color(0xFFFEF3C7),   // Amber bulb reflection
+                secondaryDim = Color(0xFF452B05),     // Bulb cavity
+                primary = Color(0xFF60A5FA),          // Voltage meter blue
+                primaryDim = Color(0xFF1E3A8A),       // Meter shroud
+                error = Color(0xFFF87171),            // Hazard blinker
+                errorDim = Color(0xFF450A0A),         // Hazard housing
+                textPrimary = Color(0xFFF1F5F9),      // Stamped metal label
+                textSecondary = Color(0xFF94A3B8),    // Engraved serial print
+                textMuted = Color(0xFF64748B)         // Screw and rivet tone
+            )
+            NetOpsTheme.OBSIDIAN_STEALTH -> ThemeColorPalette(
+                background = Color(0xFF0F1115),       // Tactical stealth matte
+                backgroundDark = Color(0xFF08090C),   // Pure shadow
+                surface = Color(0xFF181B20),          // Textured composite panel
+                border = Color(0xFF2A303A),           // Dark steel trim
+                secondary = Color(0xFFFB923C),        // Tactical amber warning
+                secondaryLight = Color(0xFFFFEDD5),   // Highlight amber
+                secondaryDim = Color(0xFF431407),     // Deep ember
+                primary = Color(0xFF2DD4BF),          // Night vision teal
+                primaryDim = Color(0xFF042F2E),       // Sensor night filter
+                error = Color(0xFFF43F5E),            // Critical lockout
+                errorDim = Color(0xFF4C0519),         // Lockout housing
+                textPrimary = Color(0xFFFAFAFA),      // White phosphor
+                textSecondary = Color(0xFFA1A1AA),    // Sub-panel markings
+                textMuted = Color(0xFF52525B)         // Chassis etchings
+            )
             NetOpsTheme.NORD_SLATE -> ThemeColorPalette(
                 background = Color(0xFF1B1E24),
                 backgroundDark = Color(0xFF15171D),
@@ -229,3 +293,88 @@ val Silver: Color
 
 val DarkSilver: Color
     get() = ThemeManager.colors.textMuted
+
+val Amber: Color = Color(0xFFFFB300)
+val AmberDim: Color = Color(0xFF5A3E00)
+
+// =========================================================================
+// --- SKEUOMORPHIC HARDWARE GROOVES & TACTILE SECTION DIVIDERS ---
+// =========================================================================
+
+/**
+ * Creates a physical engraved chassis groove (dark inset shadow + light highlight edge).
+ * Eliminates visual collision between adjacent widgets and texts.
+ */
+@Composable
+fun TactileDivider(
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    accentColor: Color? = null
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+    ) {
+        if (label != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Left engraved line
+                Box(
+                    modifier = Modifier
+                        .weight(0.12f)
+                        .height(2.dp)
+                        .background(CyberSlate.copy(alpha = 0.5f))
+                )
+
+                // Tactile physical badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(CyberDark)
+                        .border(
+                            1.dp,
+                            accentColor ?: CyberSlate,
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = label.uppercase(),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        color = accentColor ?: ConsoleGreen,
+                        letterSpacing = 1.2.sp
+                    )
+                }
+
+                // Right engraved line
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(2.dp)
+                        .background(CyberSlate.copy(alpha = 0.5f))
+                )
+            }
+        } else {
+            // Recessed groove: 1dp dark channel + 1dp rim highlight
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color(0xFF0A0C0E))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(CyberSlate.copy(alpha = 0.4f))
+            )
+        }
+    }
+}
+
