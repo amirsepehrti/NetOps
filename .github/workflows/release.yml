@@ -25,22 +25,36 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Grant Execute Permission to Gradle
-        run: chmod +x gradlew || true
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Ensure Gradle Wrapper Exists and is Executable
+        run: |
+          if [ ! -f "gradlew" ]; then
+            echo "gradlew not found, generating wrapper..."
+            gradle wrapper
+          fi
+          chmod +x gradlew
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Rename APK for Release
+      - name: Prepare APK Artifact
         run: |
           mkdir -p release-artifacts
-          cp app/build/outputs/apk/debug/*.apk release-artifacts/NetOps-Mobile.apk || true
+          cp app/build/outputs/apk/debug/*.apk release-artifacts/NetOps-Mobile.apk || cp NetOps-Mobile.apk release-artifacts/NetOps-Mobile.apk
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetOps-Mobile-APK
+          path: release-artifacts/NetOps-Mobile.apk
 
       - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
-          name: NetOps Mobile Release
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.1.0' }}
+          name: NetOps Mobile v1.1.0 Release
           body: |
             ### NetOps Mobile Official Android APK Release
             - Skeuomorphic Rack Console & Aluminum Industrial Themes
