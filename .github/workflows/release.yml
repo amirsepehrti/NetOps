@@ -13,6 +13,8 @@ jobs:
   build:
     name: Build Android APK & Create Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Code
@@ -35,6 +37,18 @@ jobs:
             gradle wrapper
           fi
           chmod +x gradlew
+
+      - name: Setup Android Debug Keystore
+        run: |
+          if [ -f "debug.keystore.base64" ]; then
+            echo "Restoring debug.keystore from base64..."
+            base64 -d debug.keystore.base64 > debug.keystore
+          fi
+          if [ ! -f "debug.keystore" ]; then
+            echo "Generating fallback debug.keystore..."
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          ls -la debug.keystore
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
