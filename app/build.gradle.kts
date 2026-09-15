@@ -9,6 +9,17 @@ plugins {
   alias(libs.plugins.google.services)
 }
 
+// Signing material is never committed, so both keystores are resolved at configuration
+// time and the build degrades to the next best key when one is absent. Without this an
+// `assembleRelease`/`assembleDebug` on a fresh checkout or CI runner fails in
+// validateSigning before it ever reaches packaging.
+val releaseKeystore =
+  file(providers.environmentVariable("KEYSTORE_PATH").getOrElse("${rootDir}/my-upload-key.jks"))
+val debugKeystore = file("${rootDir}/debug.keystore")
+val hasReleaseKeystore = releaseKeystore.isFile
+val hasDebugKeystore = debugKeystore.isFile
+val buildLogger = logger
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
@@ -17,22 +28,23 @@ android {
     applicationId = "com.aistudio.netopsmobile.wkqzjx"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = 2
+    versionName = "1.1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+      if (hasReleaseKeystore) {
+        storeFile = releaseKeystore
+        storePassword = providers.environmentVariable("STORE_PASSWORD").orNull
+        keyAlias = providers.environmentVariable("KEY_ALIAS").getOrElse("upload")
+        keyPassword = providers.environmentVariable("KEY_PASSWORD").orNull
+      }
     }
     create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
+      storeFile = debugKeystore
       storePassword = "android"
       keyAlias = "androiddebugkey"
       keyPassword = "android"
@@ -44,10 +56,25 @@ android {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("release")
+      signingConfig =
+        when {
+          hasReleaseKeystore -> signingConfigs.getByName("release")
+          hasDebugKeystore -> signingConfigs.getByName("debugConfig")
+          else -> signingConfigs.getByName("debug")
+        }
+      if (!hasReleaseKeystore) {
+        buildLogger.warn(
+          "No upload keystore at ${releaseKeystore.path}: the release APK will be signed " +
+            "with a debug key and cannot be published to Google Play."
+        )
+      }
     }
     debug {
-      signingConfig = signingConfigs.getByName("debugConfig")
+      // AGP's built-in "debug" config auto-generates a keystore; only override it when the
+      // project's own checked-out debug keystore is actually present.
+      if (hasDebugKeystore) {
+        signingConfig = signingConfigs.getByName("debugConfig")
+      }
     }
   }
   compileOptions {
